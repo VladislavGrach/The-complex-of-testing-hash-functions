@@ -3,19 +3,19 @@
     ViewData["Title"] = "Hash Functions";
 }
 
-<h1>Hash Functions</h1>
+<h1>Хеш-функции</h1>
 
 <p>
-    <a asp-action="Create" class="btn btn-primary">Add New Hash Function</a>
+    <a asp-action="Create" class="btn btn-primary">Добавить новую хеш-функцию</a>
 </p>
 
 <table class="table">
     <thead>
         <tr>
-            <th>Name</th>
-            <th>Algorithm</th>
-            <th>Description</th>
-            <th>Actions</th>
+            <th>Полное название</th>
+            <th>Алгоритм</th>
+            <th>Описание</th>
+            <th>Действия</th>
         </tr>
     </thead>
     <tbody>
@@ -23,12 +23,12 @@
         {
             <tr>
                 <td>@item.Name</td>
-                <td>@item.Algorithm</td>
+                <td>@item.AlgorithmType</td>
                 <td>@item.Description</td>
                 <td>
-                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-warning btn-sm">Edit</a>
-                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-info btn-sm">Details</a>
-                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-danger btn-sm">Delete</a>
+                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-warning btn-sm">Редактировать</a>
+                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-info btn-sm">Детали</a>
+                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-danger btn-sm">Удалить</a>
                 </td>
             </tr>
         }

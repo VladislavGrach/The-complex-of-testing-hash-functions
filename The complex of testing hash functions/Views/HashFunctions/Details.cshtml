@@ -1,0 +1,16 @@
+﻿@model The_complex_of_testing_hash_functions.Models.HashFunction
+
+@{
+    ViewData["Title"] = "Hash Function Details";
+}
+
+<h1>Детали хеш-функции</h1>
+
+<div>
+    <h4>@Model.Name</h4>
+    <p><strong>Algorithm:</strong> @Model.AlgorithmType</p>
+    <p><strong>Description:</strong> @Model.Description</p>
+</div>
+
+<a asp-action="Index" class="btn btn-secondary">Назад</a>
+<a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Редактировать</a>

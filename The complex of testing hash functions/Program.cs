@@ -3,16 +3,13 @@ using The_complex_of_testing_hash_functions.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Добавляем поддержку MVC
 builder.Services.AddControllersWithViews();
 
-// Настраиваем Entity Framework Core с SQL Server
 builder.Services.AddDbContext<HashTestingContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 
-// Настраиваем middleware и маршрутизацию
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");

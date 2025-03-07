@@ -1,0 +1,19 @@
+﻿@model The_complex_of_testing_hash_functions.Models.HashFunction
+
+@{
+    ViewData["Title"] = "Delete Hash Function";
+}
+
+<h1>Вы действительно хотите удалить?</h1>
+
+<div>
+    <h4>@Model.Name</h4>
+    <p><strong>Algorithm:</strong> @Model.AlgorithmType</p>
+    <p><strong>Description:</strong> @Model.Description</p>
+</div>
+
+<form asp-action="Delete">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">Удалить</button>
+    <a asp-action="Index" class="btn btn-secondary">Отмена</a>
+</form>

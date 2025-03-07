@@ -8,10 +8,10 @@ namespace The_complex_of_testing_hash_functions.Models
         public int Id { get; set; }
 
         [Required]
-        public string Name { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty; // "Message Digest 5"
 
         [Required]
-        public string Algorithm { get; set; } = string.Empty; // Например, "SHA-256"
+        public string AlgorithmType { get; set; } = string.Empty; // "MD5"
 
         public string? Description { get; set; }
     }
