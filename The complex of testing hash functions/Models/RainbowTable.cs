@@ -1,5 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace The_complex_of_testing_hash_functions.Models
 {
@@ -9,10 +9,13 @@ namespace The_complex_of_testing_hash_functions.Models
         public int Id { get; set; }
 
         [Required]
-        public string PlainText { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty; // Название радужной таблицы
 
         [Required]
-        public string HashValue { get; set; } = string.Empty;
+        public int ChainLength { get; set; } // Длина цепочки редукций
+
+        [Required]
+        public int TableSize { get; set; } // Количество записей в таблице
 
         [Required]
         [ForeignKey("HashFunction")]
@@ -21,3 +24,4 @@ namespace The_complex_of_testing_hash_functions.Models
         public HashFunction? HashFunction { get; set; }
     }
 }
+
