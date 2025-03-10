@@ -18,9 +18,9 @@ namespace The_complex_of_testing_hash_functions.Models
         public HashFunction? HashFunction { get; set; }
 
         [Required]
-        public string TestType { get; set; } = string.Empty; // "Лавинный эффект"
+        public string TestType { get; set; } = string.Empty;
 
         [Required]
-        public double Score { get; set; } // Оценка устойчивости
+        public double Score { get; set; }
     }
 }

@@ -1,0 +1,38 @@
+﻿@{
+    ViewData["Title"] = "Поиск данных по хешу";
+}
+
+<h2>Поиск пароля по хешу</h2>
+
+<form method="post">
+    <div class="mb-3">
+        <label for="inputHash" class="form-label">Введите хеш:</label>
+        <input type="text" class="form-control" id="inputHash" name="inputHash" required>
+    </div>
+
+    <div class="mb-3">
+        <label for="hashFunctionId" class="form-label">Выберите хеш-функцию:</label>
+        <select class="form-control" id="hashFunctionId" name="hashFunctionId">
+            @foreach (var hashFunction in ViewBag.HashFunctions)
+            {
+                <option value="@hashFunction.Id">@hashFunction.Name</option>
+            }
+        </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Найти пароль</button>
+</form>
+
+@if (ViewBag.Message != null)
+{
+    <div class="alert alert-info mt-3">
+        @ViewBag.Message
+        @if (ViewBag.PlainText != null)
+        {
+            <ul>
+                <li><strong>Пароль:</strong> @ViewBag.PlainText</li>
+                <li><strong>Длина редукционной цепочки:</strong> @ViewBag.ChainLength</li>
+            </ul>
+        }
+    </div>
+}

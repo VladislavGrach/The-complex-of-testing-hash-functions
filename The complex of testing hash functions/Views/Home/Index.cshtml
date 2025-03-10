@@ -5,13 +5,21 @@
 }
 
 <div class="text-center">
-    <h1 class="mb-4">Добро пожаловать</h1>
-    
-    <a class="btn btn-primary" asp-controller="RainbowTable" asp-action="Create">
+    <h1 class="mb-4">Комплекс тестирования хеш-функций</h1>
+
+    <a class="btn btn-primary m-2" asp-controller="RainbowTable" asp-action="Create">
         Создать радужную таблицу
     </a>
-    
+
+    <a class="btn btn-success m-2" asp-controller="RainbowTable" asp-action="Index">
+        Посмотреть радужные таблицы
+    </a>
+
     <a class="btn btn-secondary m-2" asp-controller="HashFunctions" asp-action="Index">
         Просмотреть хеш-функции
+    </a>
+
+    <a class="btn btn-info m-2" asp-controller="RainbowTable" asp-action="Search">
+        Поиск пароля
     </a>
 </div>

@@ -1,0 +1,32 @@
+﻿@model The_complex_of_testing_hash_functions.Models.RainbowTable
+
+@{
+    ViewData["Title"] = "Детали радужной таблицы";
+}
+
+<h1>Детали радужной таблицы</h1>
+
+<table class="table">
+    <tr>
+        <th>ID:</th>
+        <td>@Model.Id</td>
+    </tr>
+    <tr>
+        <th>Название:</th>
+        <td>@Model.Name</td>
+    </tr>
+    <tr>
+        <th>Длина цепочки:</th>
+        <td>@Model.ChainLength</td>
+    </tr>
+    <tr>
+        <th>Размер таблицы:</th>
+        <td>@Model.TableSize</td>
+    </tr>
+    <tr>
+        <th>Хеш-функция:</th>
+        <td>@(Model.HashFunction != null ? Model.HashFunction.Name : "Не указано")</td>
+    </tr>
+</table>
+
+<a asp-action="Index" class="btn btn-primary">Назад</a>

@@ -9,7 +9,7 @@ namespace The_complex_of_testing_hash_functions.Models
         public int Id { get; set; }
 
         [Required]
-        public string Name { get; set; } = string.Empty; // Название радужной таблицы
+        public string Name { get; set; } = string.Empty;
 
         [Required]
         public int ChainLength { get; set; } // Длина цепочки редукций

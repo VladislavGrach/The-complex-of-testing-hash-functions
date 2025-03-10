@@ -10,5 +10,7 @@ namespace The_complex_of_testing_hash_functions.Models
         public DbSet<HashFunction> HashFunctions { get; set; }
         public DbSet<RainbowTable> RainbowTables { get; set; }
         public DbSet<TestResult> TestResults { get; set; }
+        public DbSet<RainbowEntry> RainbowEntries { get; set; }
+
     }
 }
