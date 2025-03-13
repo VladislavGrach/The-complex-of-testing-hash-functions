@@ -29,6 +29,9 @@ namespace The_complex_of_testing_hash_functions.Services
             if (hashFunction == null)
                 throw new ArgumentException("Хеш-функция не найдена");
 
+            // Проверяем, существует ли уже таблица для этой хеш-функции
+            bool tableExists = _context.RainbowTables.Any(rt => rt.HashFunctionId == hashFunctionId);
+
             var rainbowTable = new RainbowTable
             {
                 Name = $"{hashFunction.AlgorithmType}_Table",
@@ -41,15 +44,18 @@ namespace The_complex_of_testing_hash_functions.Services
             _context.SaveChanges();
 
             List<RainbowEntry> entries = new List<RainbowEntry>();
-            HashSet<string> usedHashes = new HashSet<string>(); // Исключаем дубликаты
+            HashSet<string> usedHashes = new HashSet<string>();
 
-            // 1. Добавляем популярные пароли в первую очередь
-            foreach (var popularPassword in _popularPasswords.Take(tableSize))
+            // Если таблицы не было, добавляем популярные пароли
+            if (!tableExists)
             {
-                AddEntry(popularPassword, hashFunction.AlgorithmType, chainLength, rainbowTable.Id, entries, usedHashes, true);
+                foreach (var popularPassword in _popularPasswords.Take(tableSize))
+                {
+                    AddEntry(popularPassword, hashFunction.AlgorithmType, chainLength, rainbowTable.Id, entries, usedHashes, true);
+                }
             }
 
-            // 2. Если после популярных паролей места ещё остались, добавляем случайные
+            // Если места ещё остались, добавляем случайные пароли
             while (entries.Count < tableSize)
             {
                 string plainText = GenerateRandomString();
@@ -107,12 +113,15 @@ namespace The_complex_of_testing_hash_functions.Services
         // Метод редукции хеша в текст
         private string ReduceHash(string hash, int step)
         {
-            int length = 6;
-            int startIndex = (step * 7) % (hash.Length - length); // Смещение сильнее меняется
-            string reduced = new string(hash.Skip(startIndex).Take(length).ToArray());
+            int minLength = 6;
+            int maxLength = 16;
+            int length = (step % (maxLength - minLength + 1)) + minLength; // от 6 до 16 символов
 
-            // Добавляем цифру шага и символ из хеша
-            return $"{reduced}{hash[step % hash.Length]}{step % 10}";
+            int startIndex = (step * 13) % Math.Max(1, hash.Length - length);
+            string reduced = hash.Substring(startIndex, length);
+
+            // Вставляем символ из хеша и добавляем два случайных символа
+            return $"{reduced}{hash[(startIndex + step) % hash.Length]}{step % 100}";
         }
 
         private string GenerateRandomString(int length = 6)
@@ -128,6 +137,7 @@ namespace The_complex_of_testing_hash_functions.Services
         // Метод сохранения результатов теста
         private void SaveTestResult(int hashFunctionId, string testType, double attempts)
         {
+            Console.WriteLine($"[DEBUG] Сохраняем результат: HashFunctionId={hashFunctionId}, TestType={testType}, Attempts={attempts}");
             var testResult = new TestResult
             {
                 HashFunctionId = hashFunctionId,
@@ -138,6 +148,7 @@ namespace The_complex_of_testing_hash_functions.Services
 
             _context.TestResults.Add(testResult);
             _context.SaveChanges();
+            Console.WriteLine($"[DEBUG] Успешно сохранено: Id={testResult.Id}, Score={testResult.Score}");
         }
 
         public class SearchResult
@@ -152,55 +163,36 @@ namespace The_complex_of_testing_hash_functions.Services
             var hashFunction = _context.HashFunctions.FirstOrDefault(h => h.Id == hashFunctionId);
             if (hashFunction == null) return null;
 
-            var rainbowTable = _context.RainbowTables.FirstOrDefault(rt => rt.HashFunctionId == hashFunctionId);
-            if (rainbowTable == null) return null;
+            var rainbowTables = _context.RainbowTables.Where(rt => rt.HashFunctionId == hashFunctionId).ToList();
+            if (!rainbowTables.Any()) return null;
 
             string algorithm = hashFunction.AlgorithmType;
+            int attempts = 0;
 
-            if (rainbowTable.ChainLength == 0)
+            foreach (var rainbowTable in rainbowTables)
             {
-                var directMatch = _context.RainbowEntries.FirstOrDefault(e => e.HashValue == inputHash);
-                if (directMatch != null)
+                var allEntries = _context.RainbowEntries
+                    .Where(e => e.RainbowTableId == rainbowTable.Id)
+                    .OrderBy(e => e.Id)
+                    .ToList();
+
+                foreach (var entry in allEntries)
                 {
-                    return new SearchResult
+                    attempts++;
+
+                    if (entry.HashValue == inputHash)
                     {
-                        PlainText = directMatch.PlainText,
-                        ChainLength = 0
-                    };
-                }
-                return null;
-            }
-
-            for (int i = rainbowTable.ChainLength - 1; i >= 0; i--)
-            {
-                string hash = inputHash;
-
-                for (int j = i; j < rainbowTable.ChainLength; j++)
-                {
-                    hash = ReduceHash(hash, j);
-                    hash = ComputeHash(hash, algorithm);
-                }
-
-                var match = _context.RainbowEntries.FirstOrDefault(e => e.HashValue == hash);
-                if (match != null)
-                {
-                    string recoveredText = match.PlainText;
-
-                    for (int j = 0; j < rainbowTable.ChainLength; j++)
-                    {
-                        string currentHash = ComputeHash(recoveredText, algorithm);
-                        if (currentHash == inputHash)
+                        SaveTestResult(hashFunctionId, "Поиск пароля", attempts);
+                        return new SearchResult
                         {
-                            return new SearchResult
-                            {
-                                PlainText = recoveredText,
-                                ChainLength = rainbowTable.ChainLength
-                            };
-                        }
-                        recoveredText = ReduceHash(currentHash, j);
+                            PlainText = entry.PlainText,
+                            ChainLength = 0
+                        };
                     }
                 }
             }
+
+            SaveTestResult(hashFunctionId, "Поиск пароля", attempts);
             return null;
         }
     }
