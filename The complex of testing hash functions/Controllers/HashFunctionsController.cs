@@ -114,9 +114,6 @@ namespace The_complex_of_testing_hash_functions.Controllers
         [HttpPost]
         public async Task<IActionResult> TestRandomness(int hashFunctionId, string hash, string[] tests)
         {
-            // Загружаем список хеш-функций
-            ViewBag.HashFunctions = await _context.HashFunctions.ToListAsync();
-
             if (string.IsNullOrEmpty(hash))
             {
                 return View("TestsPage");
@@ -134,39 +131,50 @@ namespace The_complex_of_testing_hash_functions.Controllers
             if (tests.Contains("Monobit"))
             {
                 double score = _randomnessTestingService.MonobitTest(binaryHash);
-                results.Add(new TestResult
-                {
-                    HashFunctionId = hashFunctionId,
-                    TestType = "Монобит-тест",
-                    Score = score
-                });
+                results.Add(new TestResult { HashFunctionId = hashFunctionId, TestType = "Монобит-тест", Score = score });
             }
-
             if (tests.Contains("BlockFrequency"))
             {
                 double score = _randomnessTestingService.BlockFrequencyTest(binaryHash);
-                results.Add(new TestResult
-                {
-                    HashFunctionId = hashFunctionId,
-                    TestType = "Тест на частоту в блоках",
-                    Score = score
-                });
+                results.Add(new TestResult { HashFunctionId = hashFunctionId, TestType = "Тест на частоту в блоках", Score = score });
             }
-
             if (tests.Contains("Poker"))
             {
                 double score = _randomnessTestingService.PokerTest(binaryHash);
-                results.Add(new TestResult
-                {
-                    HashFunctionId = hashFunctionId,
-                    TestType = "Покер-тест",
-                    Score = score
-                });
+                results.Add(new TestResult { HashFunctionId = hashFunctionId, TestType = "Покер-тест", Score = score });
+            }
+            if (tests.Contains("Runs"))
+            {
+                double score = _randomnessTestingService.RunsTest(binaryHash);
+                results.Add(new TestResult { HashFunctionId = hashFunctionId, TestType = "Тест на серийность", Score = score });
+            }
+            if (tests.Contains("LongestRunOfOnes"))
+            {
+                double score = _randomnessTestingService.LongestRunOfOnesTest(binaryHash);
+                results.Add(new TestResult { HashFunctionId = hashFunctionId, TestType = "Тест на самую длинную последовательность единиц", Score = score });
+            }
+            if (tests.Contains("Permutations"))
+            {
+                double score = _randomnessTestingService.PermutationsTest(binaryHash);
+                results.Add(new TestResult { HashFunctionId = hashFunctionId, TestType = "Тест на перестановки и преобразования", Score = score });
+            }
+            if (tests.Contains("BirthdaySpacings"))
+            {
+                results.Add(new TestResult { HashFunctionId = hashFunctionId, TestType = "Тест дней рождения", Score = _randomnessTestingService.BirthdaySpacingsTest(binaryHash) });
+            }
+            if (tests.Contains("OverlappingSums"))
+            {
+                results.Add(new TestResult { HashFunctionId = hashFunctionId, TestType = "Тест равномерности распределения битов", Score = _randomnessTestingService.OverlappingSumsTest(binaryHash) });
+            }
+            if (tests.Contains("OverlappingTemplateMatching"))
+            {
+                results.Add(new TestResult { HashFunctionId = hashFunctionId, TestType = "Тест совпадения шаблонов", Score = _randomnessTestingService.OverlappingTemplateMatchingTest(binaryHash) });
             }
 
             _context.TestResults.AddRange(results);
             await _context.SaveChangesAsync();
 
+            ViewBag.HashFunctions = await _context.HashFunctions.ToListAsync();
             ViewBag.Hash = hash;
             ViewBag.BinaryHash = binaryHash;
             ViewBag.Results = results;
@@ -174,6 +182,7 @@ namespace The_complex_of_testing_hash_functions.Controllers
 
             return View("TestsPage");
         }
+
         public async Task<IActionResult> TestRandomnessPage()
         {
             var functions = await _context.HashFunctions.ToListAsync();
