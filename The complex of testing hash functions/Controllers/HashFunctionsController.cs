@@ -1,16 +1,19 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using The_complex_of_testing_hash_functions.Models;
+using The_complex_of_testing_hash_functions.Services;
 
 namespace The_complex_of_testing_hash_functions.Controllers
 {
     public class HashFunctionsController : Controller
     {
         private readonly HashTestingContext _context;
+        private readonly TestingService _randomnessTestingService;
 
         public HashFunctionsController(HashTestingContext context)
         {
             _context = context;
+            _randomnessTestingService = new TestingService();
         }
 
         public async Task<IActionResult> Index()
@@ -103,5 +106,89 @@ namespace The_complex_of_testing_hash_functions.Controllers
             return _context.HashFunctions.Any(e => e.Id == id);
         }
 
+        public async Task<IActionResult> TestRandomness()
+        {
+            return await TestRandomnessPage(); // Загружаем страницу с хеш-функциями
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> TestRandomness(int hashFunctionId, string hash, string[] tests)
+        {
+            // Загружаем список хеш-функций
+            ViewBag.HashFunctions = await _context.HashFunctions.ToListAsync();
+
+            if (string.IsNullOrEmpty(hash))
+            {
+                return View("TestsPage");
+            }
+
+            string binaryHash = _randomnessTestingService.ConvertHexToBinary(hash);
+            var hashFunction = await _context.HashFunctions.FindAsync(hashFunctionId);
+            if (hashFunction == null)
+            {
+                return NotFound("Хеш-функция не найдена!");
+            }
+
+            var results = new List<TestResult>();
+
+            if (tests.Contains("Monobit"))
+            {
+                double score = _randomnessTestingService.MonobitTest(binaryHash);
+                results.Add(new TestResult
+                {
+                    HashFunctionId = hashFunctionId,
+                    TestType = "Монобит-тест",
+                    Score = score
+                });
+            }
+
+            if (tests.Contains("BlockFrequency"))
+            {
+                double score = _randomnessTestingService.BlockFrequencyTest(binaryHash);
+                results.Add(new TestResult
+                {
+                    HashFunctionId = hashFunctionId,
+                    TestType = "Тест на частоту в блоках",
+                    Score = score
+                });
+            }
+
+            if (tests.Contains("Poker"))
+            {
+                double score = _randomnessTestingService.PokerTest(binaryHash);
+                results.Add(new TestResult
+                {
+                    HashFunctionId = hashFunctionId,
+                    TestType = "Покер-тест",
+                    Score = score
+                });
+            }
+
+            _context.TestResults.AddRange(results);
+            await _context.SaveChangesAsync();
+
+            ViewBag.Hash = hash;
+            ViewBag.BinaryHash = binaryHash;
+            ViewBag.Results = results;
+            ViewBag.HashFunctionName = hashFunction.Name;
+
+            return View("TestsPage");
+        }
+        public async Task<IActionResult> TestRandomnessPage()
+        {
+            var functions = await _context.HashFunctions.ToListAsync();
+
+            if (functions == null || functions.Count == 0)
+            {
+                ViewBag.Message = "Нет доступных хеш-функций!";
+                ViewBag.HashFunctions = new List<HashFunction>(); // Пустой список, чтобы не было null
+            }
+            else
+            {
+                ViewBag.HashFunctions = functions;
+            }
+
+            return View("TestsPage");
+        }
     }
 }
