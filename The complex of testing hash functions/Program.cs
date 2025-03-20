@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using The_complex_of_testing_hash_functions.Interfaces;
 using The_complex_of_testing_hash_functions.Models;
 using The_complex_of_testing_hash_functions.Services;
 
@@ -10,6 +11,9 @@ builder.Services.AddDbContext<HashTestingContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<RainbowTableService>();
+// Добавляем новые сервисы
+builder.Services.AddScoped<INistTestingService, NistTestingService>();
+builder.Services.AddScoped<IDiehardTestingService, DiehardTestingService>();
 
 var app = builder.Build();
 

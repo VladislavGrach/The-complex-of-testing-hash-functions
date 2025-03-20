@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using The_complex_of_testing_hash_functions.Interfaces;
 using The_complex_of_testing_hash_functions.Models;
 using The_complex_of_testing_hash_functions.Services;
 
@@ -8,12 +9,15 @@ namespace The_complex_of_testing_hash_functions.Controllers
     public class HashFunctionsController : Controller
     {
         private readonly HashTestingContext _context;
-        private readonly TestingService _randomnessTestingService;
+        private readonly NistTestingService _nistService;
+        private readonly IDiehardTestingService _diehardService;
 
-        public HashFunctionsController(HashTestingContext context)
+
+        public HashFunctionsController(HashTestingContext context, INistTestingService nistService, IDiehardTestingService diehardService)
         {
             _context = context;
-            _randomnessTestingService = new TestingService();
+            _nistService = (NistTestingService?)nistService;
+            _diehardService = diehardService;
         }
 
         public async Task<IActionResult> Index()
@@ -108,7 +112,7 @@ namespace The_complex_of_testing_hash_functions.Controllers
 
         public async Task<IActionResult> TestRandomness()
         {
-            return await TestRandomnessPage(); // Загружаем страницу с хеш-функциями
+            return await ListOfHashFunctions(); // Загружаем страницу с хеш-функциями
         }
 
         [HttpPost]
@@ -119,7 +123,7 @@ namespace The_complex_of_testing_hash_functions.Controllers
                 return View("TestsPage");
             }
 
-            string binaryHash = _randomnessTestingService.ConvertHexToBinary(hash);
+            string binaryHash = _nistService.ConvertHexToBinary(hash);
             var hashFunction = await _context.HashFunctions.FindAsync(hashFunctionId);
             if (hashFunction == null)
             {
@@ -128,52 +132,140 @@ namespace The_complex_of_testing_hash_functions.Controllers
 
             var results = new List<TestResult>();
 
+            void AddTestResult(string testName, double score)
+            {
+                if (double.IsFinite(score))  // Проверяем, чтобы не было NaN и Infinity
+                {
+                    results.Add(new TestResult { HashFunctionId = hashFunctionId, TestType = testName, Score = score });
+                }
+                else
+                {
+                    Console.WriteLine($"⚠️ Ошибка: {testName} вернул недопустимое значение ({score}) и не был добавлен в базу.");
+                }
+            }
+
+            // Применяем тесты
             if (tests.Contains("Monobit"))
             {
-                double score = _randomnessTestingService.MonobitTest(binaryHash);
-                results.Add(new TestResult { HashFunctionId = hashFunctionId, TestType = "Монобит-тест", Score = score });
+                Console.WriteLine("✅ 1");
+                AddTestResult("Монобит-тест", _nistService.MonobitTest(binaryHash));
             }
-            if (tests.Contains("BlockFrequency"))
+                
+
+            if (tests.Contains("FrequencyWithinBlock"))
             {
-                double score = _randomnessTestingService.BlockFrequencyTest(binaryHash);
-                results.Add(new TestResult { HashFunctionId = hashFunctionId, TestType = "Тест на частоту в блоках", Score = score });
+                Console.WriteLine("✅ 2");
+                AddTestResult("Частотный тест в блоках", _nistService.FrequencyTestWithinBlock(binaryHash));
             }
-            if (tests.Contains("Poker"))
-            {
-                double score = _randomnessTestingService.PokerTest(binaryHash);
-                results.Add(new TestResult { HashFunctionId = hashFunctionId, TestType = "Покер-тест", Score = score });
-            }
+                
+
             if (tests.Contains("Runs"))
             {
-                double score = _randomnessTestingService.RunsTest(binaryHash);
-                results.Add(new TestResult { HashFunctionId = hashFunctionId, TestType = "Тест на серийность", Score = score });
+                Console.WriteLine("✅ 3");
+                AddTestResult("Тест на серийность", _nistService.RunsTest(binaryHash));
             }
+
+
             if (tests.Contains("LongestRunOfOnes"))
             {
-                double score = _randomnessTestingService.LongestRunOfOnesTest(binaryHash);
-                results.Add(new TestResult { HashFunctionId = hashFunctionId, TestType = "Тест на самую длинную последовательность единиц", Score = score });
+                Console.WriteLine("✅ 4");
+                AddTestResult("Тест на самую длинную последовательность единиц", _nistService.LongestRunOfOnesTest(binaryHash));
             }
-            if (tests.Contains("Permutations"))
+
+            if (tests.Contains("BinaryMatrixRank"))
             {
-                double score = _randomnessTestingService.PermutationsTest(binaryHash);
-                results.Add(new TestResult { HashFunctionId = hashFunctionId, TestType = "Тест на перестановки и преобразования", Score = score });
+                Console.WriteLine("✅ 5");
+                AddTestResult("Тест ранга бинарной матрицы", _nistService.BinaryMatrixRankTest(binaryHash));
             }
-            if (tests.Contains("BirthdaySpacings"))
+                
+
+            if (tests.Contains("DiscreteFourierTransformTest"))
             {
-                results.Add(new TestResult { HashFunctionId = hashFunctionId, TestType = "Тест дней рождения", Score = _randomnessTestingService.BirthdaySpacingsTest(binaryHash) });
+                Console.WriteLine("✅ 6");
+                AddTestResult("Дискретное преобразование Фурье", _nistService.DiscreteFourierTransformTest(binaryHash));
             }
-            if (tests.Contains("OverlappingSums"))
+                
+
+            if (tests.Contains("NonOverlappingTemplateMatching"))
             {
-                results.Add(new TestResult { HashFunctionId = hashFunctionId, TestType = "Тест равномерности распределения битов", Score = _randomnessTestingService.OverlappingSumsTest(binaryHash) });
+                Console.WriteLine("✅ 7");
+                AddTestResult("Тест на несовпадающие шаблоны", _nistService.NonOverlappingTemplateMatchingTest(binaryHash));
             }
+                
+
             if (tests.Contains("OverlappingTemplateMatching"))
             {
-                results.Add(new TestResult { HashFunctionId = hashFunctionId, TestType = "Тест совпадения шаблонов", Score = _randomnessTestingService.OverlappingTemplateMatchingTest(binaryHash) });
+                Console.WriteLine("✅ 8");
+                AddTestResult("Тест на совпадающие шаблоны", _nistService.OverlappingTemplateMatchingTest(binaryHash));
+            }
+                
+
+            if (tests.Contains("MaurersUniversal"))
+            {
+                Console.WriteLine("✅ 9");
+                AddTestResult("Универсальный тест Маурера", _nistService.MaurersUniversalTest(binaryHash));
+            }
+                
+
+            if (tests.Contains("LinearComplexity"))
+            {
+                Console.WriteLine("✅ 10");
+                AddTestResult("Тест линейной сложности", _nistService.LinearComplexityTest(binaryHash));
+            }
+               
+
+            if (tests.Contains("Serial"))
+            {
+                Console.WriteLine("✅ 11");
+                AddTestResult("Серийный тест", _nistService.SerialTest(binaryHash));
+            }
+                
+
+            if (tests.Contains("ApproximateEntropy"))
+            {
+                Console.WriteLine("✅ 12");
+                AddTestResult("Тест приближенной энтропии", _nistService.ApproximateEntropyTest(binaryHash));
+            }
+               
+
+            if (tests.Contains("CusumTest"))
+            {
+                Console.WriteLine("✅ 13");
+                AddTestResult("Тест накопленной суммы (Cusum)", _nistService.CusumTest(binaryHash));
+            }
+                
+
+            if (tests.Contains("RandomExcursions"))
+            {
+                Console.WriteLine("✅ 14");
+                AddTestResult("Тест случайных экскурсий", _nistService.RandomExcursionsTest(binaryHash));
             }
 
-            _context.TestResults.AddRange(results);
-            await _context.SaveChangesAsync();
+            if (tests.Contains("RandomExcursionsVariant"))
+            {
+                Console.WriteLine("✅ 15");
+                double score = _nistService.RandomExcursionsVariantTest(binaryHash).Values.Sum();
+                AddTestResult("Тест вариантов случайных экскурсий", score);
+            }
 
+            if (tests.Contains("LempelZivCompression"))
+            {
+                Console.WriteLine("✅ 16");
+                AddTestResult("Тест Лемпеля-Зива", _nistService.LempelZivCompressionTest(binaryHash));
+            }
+
+            // Сохранение результатов в БД
+            if (results.Any())  // Сохраняем только если есть валидные результаты
+            {
+                _context.TestResults.AddRange(results);
+                await _context.SaveChangesAsync();
+            }
+            else
+            {
+                Console.WriteLine("⚠️ Все тесты вернули некорректные значения! Данные не были сохранены.");
+            }
+
+            // Подготовка данных для отображения
             ViewBag.HashFunctions = await _context.HashFunctions.ToListAsync();
             ViewBag.Hash = hash;
             ViewBag.BinaryHash = binaryHash;
@@ -183,7 +275,8 @@ namespace The_complex_of_testing_hash_functions.Controllers
             return View("TestsPage");
         }
 
-        public async Task<IActionResult> TestRandomnessPage()
+
+        public async Task<IActionResult> ListOfHashFunctions()
         {
             var functions = await _context.HashFunctions.ToListAsync();
 

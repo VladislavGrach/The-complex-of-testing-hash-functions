@@ -2,7 +2,7 @@
     ViewData["Title"] = "Тестирование хеш-функции";
 }
 
-<h1 class="mb-4">Тестирование хеш-функции по NIST</h1>
+<h1 class="mb-4">Тестирование хеш-функции</h1>
 
 <!-- Форма ввода -->
 <form method="post" action="/HashFunctions/TestRandomness">
@@ -20,38 +20,60 @@
             <option disabled>Нет доступных хеш-функций</option>
         }
     </select>
+
     <label>Введите хеш:</label>
     <input type="text" name="hash" class="form-control w-50" required />
 
     <div class="mt-3">
-        <label>Выберите тесты:</label>
-        <div>
-            <input type="checkbox" name="tests" value="Monobit" checked /> Монобит-тест
+        <label><strong>Выберите тесты:</strong></label>
+
+        <div class="d-flex gap-2 mb-3">
+            <button type="button" class="btn btn-info" onclick="selectAllTests()">Выбрать все</button>
+            <button type="button" class="btn btn-warning" onclick="deselectAllTests()">Сбросить</button>
         </div>
-        <div>
-            <input type="checkbox" name="tests" value="BlockFrequency" checked /> Тест на частоту в блоках
+
+        <!-- Группа тестов NIST -->
+        <div class="border p-3 mb-3">
+            <h5 class="text-primary">Тесты NIST</h5>
+            <div><input type="checkbox" name="tests" value="Monobit" checked /> Монобит-тест</div>
+            <div><input type="checkbox" name="tests" value="BlockFrequency" checked /> Тест на частоту в блоках</div>
+            <div><input type="checkbox" name="tests" value="Runs" checked /> Тест на серийность</div>
+            <div><input type="checkbox" name="tests" value="LongestRunOfOnes" checked /> Тест на самую длинную последовательность единиц</div>
+            <div><input type="checkbox" name="tests" value="BinaryMatrixRank" checked /> Тест ранга бинарной матрицы</div>
+            <div><input type="checkbox" name="tests" value="DiscreteFourierTransformTest" checked /> Дискретное преобразование Фурье</div>
+            <div><input type="checkbox" name="tests" value="OverlappingTemplateMatching" checked /> Тест совпадения шаблонов</div>
+            <div><input type="checkbox" name="tests" value="MaurersUniversal" checked /> Универсальный тест Маурера</div>
+            <div><input type="checkbox" name="tests" value="LinearComplexity" checked /> Тест линейной сложности</div>
+            <div><input type="checkbox" name="tests" value="Serial" checked /> Серийный тест</div>
+            <div><input type="checkbox" name="tests" value="ApproximateEntropy" checked /> Тест аппроксимационной энтропии</div>
+            <div><input type="checkbox" name="tests" value="CusumTest" checked /> Тест накопительных сумм</div>
+            <div><input type="checkbox" name="tests" value="RandomExcursions" checked /> Тест случайных отклонений</div>
+            <div><input type="checkbox" name="tests" value="RandomExcursionsVariant" checked /> Вариант теста случайных отклонений</div>
+            <div><input type="checkbox" name="tests" value="FrequencyWithinBlock" checked /> Частотный тест в блоках</div>
+            <div><input type="checkbox" name="tests" value="NonOverlappingTemplateMatching" checked /> Тест на несовпадающие шаблоны</div>
+            <div><input type="checkbox" name="tests" value="LempelZivCompression" checked /> Тест Лемпеля-Зива</div>
         </div>
-        <div>
-            <input type="checkbox" name="tests" value="Poker" checked /> Покер-тест
+
+        <!-- Группа тестов Diehard -->
+        <!-- Удаляем дублирующийся тест -->
+        <div class="border p-3 mb-3">
+            <h5 class="text-secondary">Тесты Diehard</h5>
+            <div><input type="checkbox" name="tests" value="BirthdaySpacings" checked /> Тест дней рождения</div>
+            <div><input type="checkbox" name="tests" value="OverlappingSums" checked /> Тест равномерности распределения битов</div>
+            <div><input type="checkbox" name="tests" value="OverlappingTemplateMatching" checked /> Тест совпадения шаблонов</div>
+            <div><input type="checkbox" name="tests" value="Permutations" checked /> Тест на перестановки</div>
         </div>
-        <div>
-            <input type="checkbox" name="tests" value="Runs" checked /> Тест на серийность
-        </div>
-        <div>
-            <input type="checkbox" name="tests" value="LongestRunOfOnes" checked /> Тест на самую длинную последовательность единиц
-        </div>
-        <div>
-            <input type="checkbox" name="tests" value="Permutations" checked /> Тест на перестановки и преобразования
-        </div>
-        <div>
-            <input type="checkbox" name="tests" value="BirthdaySpacings" checked /> Тест дней рождения
-        </div>
-        <div>
-            <input type="checkbox" name="tests" value="OverlappingSums" checked /> Тест равномерности распределения битов
-        </div>
-        <div>
-            <input type="checkbox" name="tests" value="OverlappingTemplateMatching" checked /> Тест совпадения шаблонов
-        </div>
+
+
+        <script>
+            function selectAllTests() {
+                document.querySelectorAll('input[name="tests"]').forEach(el => el.checked = true);
+            }
+
+            function deselectAllTests() {
+                document.querySelectorAll('input[name="tests"]').forEach(el => el.checked = false);
+            }
+        </script>
     </div>
 
     <button type="submit" class="btn btn-success mt-2">Запустить тесты</button>
@@ -81,13 +103,29 @@
                     <td>@result.TestType</td>
                     <td>@result.Score</td>
                     <td>
-                        @if (result.Score < 1.96)
+                        @if (result.TestType.Contains("p-value") || (result.Score >= 0 && result.Score <= 1))
                         {
-                            <span style="color: green;">✅</span>
+                            // p-value тест: проверяем, больше ли 0.01
+                            @if (result.Score > 0.01)
+                            {
+                                <span style="color: green;">✅</span>
+                            }
+                            else
+                            {
+                                <span style="color: red;">❌</span>
+                            }
                         }
                         else
                         {
-                            <span style="color: red;">❌</span>
+                            // Z-значение тест: проверяем, меньше ли 1.96
+                            @if (result.Score < 1.96)
+                            {
+                                <span style="color: green;">✅</span>
+                            }
+                            else
+                            {
+                                <span style="color: red;">❌</span>
+                            }
                         }
                     </td>
                 </tr>
