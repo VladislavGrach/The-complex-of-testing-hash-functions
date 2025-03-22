@@ -3,8 +3,9 @@
     public interface IDiehardTestingService
     {
         double BirthdaySpacingsTest(string bits);
-        double OverlappingSumsTest(string bits);
-        double PermutationsTest(string bits);
-
+        double CountOnesTest(string bits);
+        double RanksOfMatricesTest(string bits);
+        double OverlappingPermutationsTest(string bits);
+        double RunsTest(string bits);
     }
 }

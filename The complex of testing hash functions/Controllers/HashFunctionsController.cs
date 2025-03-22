@@ -118,163 +118,213 @@ namespace The_complex_of_testing_hash_functions.Controllers
         [HttpPost]
         public async Task<IActionResult> TestRandomness(int hashFunctionId, string hash, string[] tests)
         {
-            if (string.IsNullOrEmpty(hash))
+            if (string.IsNullOrEmpty(hash) || tests == null || tests.Length == 0)
             {
-                return View("TestsPage");
+                ViewBag.Error = "Введите хеш и выберите хотя бы один тест!";
+                return await ListOfHashFunctions();  // Перезагружаем страницу с сообщением об ошибке
             }
 
-            string binaryHash = _nistService.ConvertHexToBinary(hash);
+            string binaryHash;
+            try
+            {
+                binaryHash = _nistService.ConvertHexToBinary(hash);
+            }
+            catch (Exception ex)
+            {
+                ViewBag.Error = $"Ошибка при преобразовании хеша: {ex.Message}";
+                return await ListOfHashFunctions();
+            }
+
             var hashFunction = await _context.HashFunctions.FindAsync(hashFunctionId);
             if (hashFunction == null)
             {
-                return NotFound("Хеш-функция не найдена!");
+                ViewBag.Error = "Выбранная хеш-функция не найдена!";
+                return await ListOfHashFunctions();
             }
 
             var results = new List<TestResult>();
 
             void AddTestResult(string testName, double score)
             {
-                if (double.IsFinite(score))  // Проверяем, чтобы не было NaN и Infinity
+                if (double.IsFinite(score))
                 {
-                    results.Add(new TestResult { HashFunctionId = hashFunctionId, TestType = testName, Score = score });
+                    results.Add(new TestResult
+                    {
+                        HashFunctionId = hashFunctionId,
+                        TestType = testName,
+                        Score = score
+                    });
                 }
                 else
                 {
-                    Console.WriteLine($"⚠️ Ошибка: {testName} вернул недопустимое значение ({score}) и не был добавлен в базу.");
+                    Console.WriteLine($"⚠️ Результат {testName} отброшен, так как score = {score}");
                 }
             }
 
-            // Применяем тесты
-            if (tests.Contains("Monobit"))
+            try
             {
-                Console.WriteLine("✅ 1");
-                AddTestResult("Монобит-тест", _nistService.MonobitTest(binaryHash));
-            }
-                
+                // Применяем тесты
+                if (tests.Contains("Monobit"))
+                {
+                    Console.WriteLine("✅ 1");
+                    AddTestResult("Монобит-тест", _nistService.MonobitTest(binaryHash));
+                }
 
-            if (tests.Contains("FrequencyWithinBlock"))
+                if (tests.Contains("FrequencyWithinBlock"))
+                {
+                    Console.WriteLine("✅ 2");
+                    AddTestResult("Частотный тест в блоках", _nistService.FrequencyTestWithinBlock(binaryHash));
+                }
+
+                if (tests.Contains("Runs"))
+                {
+                    Console.WriteLine("✅ 3");
+                    AddTestResult("Тест на серийность", _nistService.RunsTest(binaryHash));
+                }
+
+                if (tests.Contains("LongestRunOfOnes"))
+                {
+                    Console.WriteLine("✅ 4");
+                    AddTestResult("Тест на самую длинную последовательность единиц", _nistService.LongestRunOfOnesTest(binaryHash));
+                }
+
+                if (tests.Contains("BinaryMatrixRank"))
+                {
+                    Console.WriteLine("✅ 5");
+                    AddTestResult("Тест ранга бинарной матрицы", _nistService.BinaryMatrixRankTest(binaryHash));
+                }
+
+
+                if (tests.Contains("DiscreteFourierTransformTest"))
+                {
+                    Console.WriteLine("✅ 6");
+                    AddTestResult("Дискретное преобразование Фурье", _nistService.DiscreteFourierTransformTest(binaryHash));
+                }
+
+
+                if (tests.Contains("NonOverlappingTemplateMatching"))
+                {
+                    Console.WriteLine("✅ 7");
+                    AddTestResult("Тест на несовпадающие шаблоны", _nistService.NonOverlappingTemplateMatchingTest(binaryHash));
+                }
+
+
+                if (tests.Contains("OverlappingTemplateMatching"))
+                {
+                    Console.WriteLine("✅ 8");
+                    AddTestResult("Тест на совпадающие шаблоны", _nistService.OverlappingTemplateMatchingTest(binaryHash));
+                }
+
+
+                if (tests.Contains("MaurersUniversal"))
+                {
+                    Console.WriteLine("✅ 9");
+                    AddTestResult("Универсальный тест Маурера", _nistService.MaurersUniversalTest(binaryHash));
+                }
+
+
+                if (tests.Contains("LinearComplexity"))
+                {
+                    Console.WriteLine("✅ 10");
+                    AddTestResult("Тест линейной сложности", _nistService.LinearComplexityTest(binaryHash));
+                }
+
+
+                if (tests.Contains("Serial"))
+                {
+                    Console.WriteLine("✅ 11");
+                    AddTestResult("Серийный тест", _nistService.SerialTest(binaryHash));
+                }
+
+
+                if (tests.Contains("ApproximateEntropy"))
+                {
+                    Console.WriteLine("✅ 12");
+                    AddTestResult("Тест приближенной энтропии", _nistService.ApproximateEntropyTest(binaryHash));
+                }
+
+
+                if (tests.Contains("CusumTest"))
+                {
+                    Console.WriteLine("✅ 13");
+                    AddTestResult("Тест накопленной суммы (Cusum)", _nistService.CusumTest(binaryHash));
+                }
+
+
+                if (tests.Contains("RandomExcursions"))
+                {
+                    Console.WriteLine("✅ 14");
+                    AddTestResult("Тест случайных экскурсий", _nistService.RandomExcursionsTest(binaryHash));
+                }
+
+                if (tests.Contains("RandomExcursionsVariant"))
+                {
+                    Console.WriteLine("✅ 15");
+                    double score = _nistService.RandomExcursionsVariantTest(binaryHash).Values.Sum();
+                    AddTestResult("Тест вариантов случайных экскурсий", score);
+                }
+
+                if (tests.Contains("LempelZivCompression"))
+                {
+                    Console.WriteLine("✅ 16");
+                    AddTestResult("Тест Лемпеля-Зива", _nistService.LempelZivCompressionTest(binaryHash));
+                }
+
+                if (tests.Contains("BirthdaySpacings"))
+                {
+                    Console.WriteLine("✅ 17");
+                    AddTestResult("Тест дней рождения", _diehardService.BirthdaySpacingsTest(binaryHash));
+                }
+
+                if (tests.Contains("CountOnes"))
+                {
+                    Console.WriteLine("✅ 18");
+                    AddTestResult("Тест подсчёта единиц", _diehardService.CountOnesTest(binaryHash));
+                }
+
+                if (tests.Contains("RanksOfMatrices"))
+                {
+                    Console.WriteLine("✅ 19");
+                    AddTestResult("Тест рангов матриц", _diehardService.RanksOfMatricesTest(binaryHash));
+                }
+
+                if (tests.Contains("OverlappingPermutations"))
+                {
+                    Console.WriteLine("✅ 20");
+                    AddTestResult("Тест на перестановки", _diehardService.OverlappingPermutationsTest(binaryHash));
+                }
+
+                if (tests.Contains("RunsDiehard"))
+                {
+                    Console.WriteLine("✅ 21");
+                    AddTestResult("Тест серийности", _diehardService.RunsTest(binaryHash));
+                }
+            }
+            catch (Exception ex)
             {
-                Console.WriteLine("✅ 2");
-                AddTestResult("Частотный тест в блоках", _nistService.FrequencyTestWithinBlock(binaryHash));
-            }
-                
-
-            if (tests.Contains("Runs"))
-            {
-                Console.WriteLine("✅ 3");
-                AddTestResult("Тест на серийность", _nistService.RunsTest(binaryHash));
+                ViewBag.Error = $"Ошибка выполнения тестов: {ex.Message}";
+                return await ListOfHashFunctions();
             }
 
-
-            if (tests.Contains("LongestRunOfOnes"))
-            {
-                Console.WriteLine("✅ 4");
-                AddTestResult("Тест на самую длинную последовательность единиц", _nistService.LongestRunOfOnesTest(binaryHash));
-            }
-
-            if (tests.Contains("BinaryMatrixRank"))
-            {
-                Console.WriteLine("✅ 5");
-                AddTestResult("Тест ранга бинарной матрицы", _nistService.BinaryMatrixRankTest(binaryHash));
-            }
-                
-
-            if (tests.Contains("DiscreteFourierTransformTest"))
-            {
-                Console.WriteLine("✅ 6");
-                AddTestResult("Дискретное преобразование Фурье", _nistService.DiscreteFourierTransformTest(binaryHash));
-            }
-                
-
-            if (tests.Contains("NonOverlappingTemplateMatching"))
-            {
-                Console.WriteLine("✅ 7");
-                AddTestResult("Тест на несовпадающие шаблоны", _nistService.NonOverlappingTemplateMatchingTest(binaryHash));
-            }
-                
-
-            if (tests.Contains("OverlappingTemplateMatching"))
-            {
-                Console.WriteLine("✅ 8");
-                AddTestResult("Тест на совпадающие шаблоны", _nistService.OverlappingTemplateMatchingTest(binaryHash));
-            }
-                
-
-            if (tests.Contains("MaurersUniversal"))
-            {
-                Console.WriteLine("✅ 9");
-                AddTestResult("Универсальный тест Маурера", _nistService.MaurersUniversalTest(binaryHash));
-            }
-                
-
-            if (tests.Contains("LinearComplexity"))
-            {
-                Console.WriteLine("✅ 10");
-                AddTestResult("Тест линейной сложности", _nistService.LinearComplexityTest(binaryHash));
-            }
-               
-
-            if (tests.Contains("Serial"))
-            {
-                Console.WriteLine("✅ 11");
-                AddTestResult("Серийный тест", _nistService.SerialTest(binaryHash));
-            }
-                
-
-            if (tests.Contains("ApproximateEntropy"))
-            {
-                Console.WriteLine("✅ 12");
-                AddTestResult("Тест приближенной энтропии", _nistService.ApproximateEntropyTest(binaryHash));
-            }
-               
-
-            if (tests.Contains("CusumTest"))
-            {
-                Console.WriteLine("✅ 13");
-                AddTestResult("Тест накопленной суммы (Cusum)", _nistService.CusumTest(binaryHash));
-            }
-                
-
-            if (tests.Contains("RandomExcursions"))
-            {
-                Console.WriteLine("✅ 14");
-                AddTestResult("Тест случайных экскурсий", _nistService.RandomExcursionsTest(binaryHash));
-            }
-
-            if (tests.Contains("RandomExcursionsVariant"))
-            {
-                Console.WriteLine("✅ 15");
-                double score = _nistService.RandomExcursionsVariantTest(binaryHash).Values.Sum();
-                AddTestResult("Тест вариантов случайных экскурсий", score);
-            }
-
-            if (tests.Contains("LempelZivCompression"))
-            {
-                Console.WriteLine("✅ 16");
-                AddTestResult("Тест Лемпеля-Зива", _nistService.LempelZivCompressionTest(binaryHash));
-            }
-
-            // Сохранение результатов в БД
-            if (results.Any())  // Сохраняем только если есть валидные результаты
+            if (results.Any())
             {
                 _context.TestResults.AddRange(results);
                 await _context.SaveChangesAsync();
             }
             else
             {
-                Console.WriteLine("⚠️ Все тесты вернули некорректные значения! Данные не были сохранены.");
+                ViewBag.Error = "⚠️ Все тесты вернули некорректные значения! Данные не были сохранены.";
             }
 
-            // Подготовка данных для отображения
-            ViewBag.HashFunctions = await _context.HashFunctions.ToListAsync();
+            // Передаём данные во ViewBag для отображения в интерфейсе
+            ViewBag.Results = results;
             ViewBag.Hash = hash;
             ViewBag.BinaryHash = binaryHash;
-            ViewBag.Results = results;
             ViewBag.HashFunctionName = hashFunction.Name;
+            ViewBag.HashFunctions = await _context.HashFunctions.ToListAsync();
 
             return View("TestsPage");
         }
-
 
         public async Task<IActionResult> ListOfHashFunctions()
         {

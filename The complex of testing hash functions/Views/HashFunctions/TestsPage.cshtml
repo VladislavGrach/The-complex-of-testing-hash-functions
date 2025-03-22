@@ -55,13 +55,13 @@
         </div>
 
         <!-- Группа тестов Diehard -->
-        <!-- Удаляем дублирующийся тест -->
         <div class="border p-3 mb-3">
             <h5 class="text-secondary">Тесты Diehard</h5>
             <div><input type="checkbox" name="tests" value="BirthdaySpacings" checked /> Тест дней рождения</div>
-            <div><input type="checkbox" name="tests" value="OverlappingSums" checked /> Тест равномерности распределения битов</div>
-            <div><input type="checkbox" name="tests" value="OverlappingTemplateMatching" checked /> Тест совпадения шаблонов</div>
-            <div><input type="checkbox" name="tests" value="Permutations" checked /> Тест на перестановки</div>
+            <div><input type="checkbox" name="tests" value="CountOnes" checked /> Тест подсчёта единиц</div>
+            <div><input type="checkbox" name="tests" value="RanksOfMatrices" checked /> Тест рангов матриц</div>
+            <div><input type="checkbox" name="tests" value="OverlappingPermutations" checked /> Тест на перестановки</div>
+            <div><input type="checkbox" name="tests" value="RunsDiehard" checked /> Тест серийности</div>
         </div>
 
 
@@ -86,7 +86,20 @@
 {
     <h2>Результаты тестирования</h2>
     <p><strong>Исходный хеш:</strong> @ViewBag.Hash</p>
-    <p><strong>Бинарное представление:</strong> @ViewBag.BinaryHash</p>
+
+    @functions {
+        public string FormatBinaryString(string binary, int groupSize = 16)
+        {
+            return string.Join("<br>", System.Text.RegularExpressions.Regex
+                .Matches(binary, $".{{1,{groupSize}}}")
+                .Cast<System.Text.RegularExpressions.Match>()
+                .Select(m => m.Value));
+        }
+    }
+
+    <p><strong>Бинарное представление блоками по 16 символов:</strong></p>
+    <pre style="word-wrap: break-word; white-space: pre-wrap;">@Html.Raw(FormatBinaryString(ViewBag.BinaryHash?.ToString() ?? ""))</pre>
+    
     <p><strong>Хеш-функция:</strong> @ViewBag.HashFunctionName</p>
     <table class="table">
         <thead>
