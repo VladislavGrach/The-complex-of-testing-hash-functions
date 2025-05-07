@@ -3,6 +3,9 @@ using System.Security.Cryptography;
 using System.Text;
 using The_complex_of_testing_hash_functions.Models;
 using SHA3.Net;
+using GostCryptography;
+using Org.BouncyCastle.Crypto.Digests;
+
 
 namespace The_complex_of_testing_hash_functions.Services
 {
@@ -94,21 +97,46 @@ namespace The_complex_of_testing_hash_functions.Services
 
         private string ComputeHash(string input, string algorithm)
         {
-            using HashAlgorithm hashAlgorithm = algorithm switch
-            {
-                "MD5" => MD5.Create(),
-                "SHA-1" => SHA1.Create(),
-                "SHA-256" => SHA256.Create(),
-                //"SHA-512" => SHA512.Create(),
-                //"SHA3-256" => Sha3.Sha3256(),
-                //"SHA3-512" => Sha3.Sha3512(),
-                "SHA-3" => Sha3.Sha3512(),
-                _ => throw new ArgumentException($"Неверный алгоритм хеширования: {algorithm}")
-            };
+            byte[] inputBytes = Encoding.UTF8.GetBytes(input);
+            byte[] hashBytes;
 
-            byte[] hashBytes = hashAlgorithm.ComputeHash(Encoding.UTF8.GetBytes(input));
+            switch (algorithm)
+            {
+                case "MD5":
+                    using (var md5 = MD5.Create())
+                        hashBytes = md5.ComputeHash(inputBytes);
+                    break;
+
+                case "SHA-1":
+                    using (var sha1 = SHA1.Create())
+                        hashBytes = sha1.ComputeHash(inputBytes);
+                    break;
+
+                case "SHA-256":
+                    using (var sha256 = SHA256.Create())
+                        hashBytes = sha256.ComputeHash(inputBytes);
+                    break;
+
+                case "SHA-3":
+                    using (var sha3 = Sha3.Sha3512())
+                        hashBytes = sha3.ComputeHash(inputBytes);
+                    break;
+
+                case "STRIBOG-256":
+                    hashBytes = ComputeGostHash(inputBytes, 256);
+                    break;
+
+                case "STRIBOG-512":
+                    hashBytes = ComputeGostHash(inputBytes, 512);
+                    break;
+
+                default:
+                    throw new ArgumentException($"Неверный алгоритм хеширования: {algorithm}");
+            }
+
             return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
         }
+
 
         // Метод редукции хеша в текст
         private string ReduceHash(string hash, int step)
@@ -137,7 +165,6 @@ namespace The_complex_of_testing_hash_functions.Services
         // Метод сохранения результатов теста
         private void SaveTestResult(int hashFunctionId, string testType, double attempts)
         {
-            Console.WriteLine($"[DEBUG] Сохраняем результат: HashFunctionId={hashFunctionId}, TestType={testType}, Attempts={attempts}");
             var testResult = new TestResult
             {
                 HashFunctionId = hashFunctionId,
@@ -148,7 +175,6 @@ namespace The_complex_of_testing_hash_functions.Services
 
             _context.TestResults.Add(testResult);
             _context.SaveChanges();
-            Console.WriteLine($"[DEBUG] Успешно сохранено: Id={testResult.Id}, Score={testResult.Score}");
         }
 
         public class SearchResult
@@ -194,6 +220,27 @@ namespace The_complex_of_testing_hash_functions.Services
 
             SaveTestResult(hashFunctionId, "Поиск пароля", attempts);
             return null;
+        }
+
+        private byte[] ComputeGostHash(byte[] inputBytes, int bits)
+        {
+            Org.BouncyCastle.Crypto.IDigest digest;
+
+            if (bits == 256)
+            {
+                digest = new Gost3411_2012_256Digest();
+            }
+            else
+            {
+                digest = new Gost3411_2012_512Digest();
+            }
+
+            digest.BlockUpdate(inputBytes, 0, inputBytes.Length);
+
+            byte[] result = new byte[digest.GetDigestSize()];
+            digest.DoFinal(result, 0);
+
+            return result;
         }
     }
 }
