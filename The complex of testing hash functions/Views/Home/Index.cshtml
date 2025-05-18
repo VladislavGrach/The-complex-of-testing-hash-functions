@@ -1,29 +1,97 @@
 ﻿@model List<The_complex_of_testing_hash_functions.Models.HashFunction>
 
 @{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Главная";
 }
 
-<div class="text-center">
-    <h1 class="mb-4">Комплекс тестирования хеш-функций</h1>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
 
-    <a class="btn btn-primary m-2" asp-controller="RainbowTable" asp-action="Create">
-        Создать радужную таблицу
-    </a>
+<div class="container mt-5">
+    <h1 class="text-center mb-5">Комплекс тестирования хэш-функций</h1>
 
-    <a class="btn btn-success m-2" asp-controller="RainbowTable" asp-action="Index">
-        Посмотреть радужные таблицы
-    </a>
+    <!-- Первый ряд -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
 
-    <a class="btn btn-secondary m-2" asp-controller="HashFunctions" asp-action="Index">
-        Просмотреть хеш-функции
-    </a>
+        <div class="col">
+            <div class="card h-100 border-primary d-flex flex-column">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title text-primary"><i class="fas fa-plus-square"></i> Создать радужную таблицу</h5>
+                    <p class="card-text">Генерация таблицы для обратного поиска хэшей паролей.</p>
+                    <a class="btn btn-outline-primary mt-auto align-self-start" asp-controller="RainbowTable" asp-action="Create">Перейти</a>
+                </div>
+            </div>
+        </div>
 
-    <a class="btn btn-info m-2" asp-controller="RainbowTable" asp-action="Search">
-        Поиск пароля
-    </a>
+        <div class="col">
+            <div class="card h-100 border-success d-flex flex-column">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title text-success"><i class="fas fa-table"></i> Посмотреть радужные таблицы</h5>
+                    <p class="card-text">Просмотр ранее созданных таблиц и информации о них.</p>
+                    <a class="btn btn-outline-success mt-auto align-self-start" asp-controller="RainbowTable" asp-action="Index">Перейти</a>
+                </div>
+            </div>
+        </div>
 
-    <a class="btn btn-warning m-2" asp-controller="HashFunctions" asp-action="TestRandomness">
-        Тестировать хеш-функцию
-    </a>
+        <div class="col">
+            <div class="card h-100 border-secondary d-flex flex-column">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title text-secondary"><i class="fas fa-hashtag"></i> Просмотреть хэш-функции</h5>
+                    <p class="card-text">Список всех доступных хэш-функций и их описание.</p>
+                    <a class="btn btn-outline-secondary mt-auto align-self-start" asp-controller="HashFunctions" asp-action="Index">Перейти</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Второй ряд -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 justify-content-center mt-1">
+
+        <div class="col">
+            <div class="card h-100 border-info d-flex flex-column">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title text-info"><i class="fas fa-search"></i> Поиск данных</h5>
+                    <p class="card-text">Ввод хэша и попытка найти исходные данные по радужной таблице.</p>
+                    <a class="btn btn-outline-info mt-auto align-self-start" asp-controller="RainbowTable" asp-action="Search">Перейти</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col">
+            <div class="card h-100 border-warning d-flex flex-column">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title text-warning"><i class="fas fa-cog"></i> Тестировать хэш-функцию</h5>
+                    <p class="card-text">Проверка криптографической стойкости хэш-функции с помощью тестов NIST и Diehard.</p>
+                    <a class="btn btn-outline-warning mt-auto align-self-start" asp-controller="HashFunctions" asp-action="TestRandomness">Перейти</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
 </div>
+
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="successToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    @TempData["SuccessMessage"]
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Закрыть"></button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', (event) => {
+            const toastEl = document.getElementById('successToast');
+            const toast = new bootstrap.Toast(toastEl, {
+                autohide: true,
+                delay: 3000
+            });
+            toast.show();
+        });
+    </script>
+}

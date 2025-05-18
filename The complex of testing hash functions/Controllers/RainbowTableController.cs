@@ -53,7 +53,8 @@ namespace The_complex_of_testing_hash_functions.Controllers
 
             _rainbowTableService.GenerateRainbowTable(hashFunction.Id, chainLength, tableSize);
 
-            return RedirectToAction("Index");
+            TempData["SuccessMessage"] = "Радужная таблица успешно создана!";
+            return RedirectToAction("Index", "Home");
         }
 
         public IActionResult Search()

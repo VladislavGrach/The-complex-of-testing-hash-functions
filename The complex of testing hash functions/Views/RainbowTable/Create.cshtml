@@ -1,28 +1,44 @@
 ﻿@{
     ViewData["Title"] = "Создание радужной таблицы";
 }
-<h1>Создание радужной таблицы</h1>
 
-<form asp-action="Create" method="post">
-    <div class="form-group">
-        <label>Выберите хеш-функцию</label>
-        <select name="algorithmType" class="form-control">
-            @foreach (var hashFunction in ViewBag.HashFunctions)
-            {
-                <option value="@hashFunction.AlgorithmType">@hashFunction.Name</option>
-            }
-        </select>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-plus-square"></i> Создание радужной таблицы</h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" method="post">
+                        <div class="mb-3">
+                            <label class="form-label">Выберите хеш-функцию</label>
+                            <select name="algorithmType" class="form-select">
+                                @foreach (var hashFunction in ViewBag.HashFunctions)
+                                {
+                                    <option value="@hashFunction.AlgorithmType">@hashFunction.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Длина цепочки редукции</label>
+                            <input type="number" name="chainLength" class="form-control" value="0" min="0" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Размер таблицы</label>
+                            <input type="number" name="tableSize" class="form-control" value="1000" min="1" />
+                        </div>
+
+                        <button type="submit" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-hammer"></i> Создать таблицу
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
-
-    <div class="form-group">
-        <label>Длина цепочки редукции</label>
-        <input type="number" name="chainLength" class="form-control" value="0" />
-    </div>
-
-    <div class="form-group">
-        <label>Размер таблицы</label>
-        <input type="number" name="tableSize" class="form-control" value="1000" />
-    </div>
-
-    <button type="submit" class="btn btn-primary mt-2">Создать</button>
-</form>
+</div>
