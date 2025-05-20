@@ -14,7 +14,7 @@
                 <div class="card-body">
                     <form asp-action="Create" method="post">
                         <div class="mb-3">
-                            <label class="form-label">Выберите хеш-функцию</label>
+                            <label class="form-label">Выберите хэш-функцию</label>
                             <select name="algorithmType" class="form-select">
                                 @foreach (var hashFunction in ViewBag.HashFunctions)
                                 {

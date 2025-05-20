@@ -32,7 +32,7 @@ namespace The_complex_of_testing_hash_functions.Controllers
         {
             if (string.IsNullOrEmpty(algorithmType))
             {
-                return BadRequest("Не выбрана хеш-функция.");
+                return BadRequest("Не выбрана хэш-функция");
             }
 
             string NormalizeAlgorithmName(string algorithm)
@@ -48,7 +48,7 @@ namespace The_complex_of_testing_hash_functions.Controllers
 
             if (hashFunction == null)
             {
-                return BadRequest($"Выбрана неверная хеш-функция: {algorithmType}");
+                return BadRequest($"Выбрана неверная хэш-функция: {algorithmType}");
             }
 
             _rainbowTableService.GenerateRainbowTable(hashFunction.Id, chainLength, tableSize);
@@ -98,11 +98,14 @@ namespace The_complex_of_testing_hash_functions.Controllers
         public IActionResult DeleteConfirmed(int id)
         {
             var table = _context.RainbowTables.Find(id);
+            
             if (table != null)
             {
                 _context.RainbowTables.Remove(table);
                 _context.SaveChanges();
+                TempData["SuccessMessage"] = $"Радужная таблица \"{table.Name}\" успешно удалена!";
             }
+
             return RedirectToAction(nameof(Index));
         }
 

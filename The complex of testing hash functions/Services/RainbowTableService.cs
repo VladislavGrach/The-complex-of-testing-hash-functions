@@ -30,9 +30,9 @@ namespace The_complex_of_testing_hash_functions.Services
         {
             var hashFunction = _context.HashFunctions.FirstOrDefault(h => h.Id == hashFunctionId);
             if (hashFunction == null)
-                throw new ArgumentException("Хеш-функция не найдена");
+                throw new ArgumentException("Хэш-функция не найдена");
 
-            // Проверяем, существует ли уже таблица для этой хеш-функции
+            // Проверяем, существует ли уже таблица для этой хэш-функции
             bool tableExists = _context.RainbowTables.Any(rt => rt.HashFunctionId == hashFunctionId);
 
             var rainbowTable = new RainbowTable
@@ -131,14 +131,14 @@ namespace The_complex_of_testing_hash_functions.Services
                     break;
 
                 default:
-                    throw new ArgumentException($"Неверный алгоритм хеширования: {algorithm}");
+                    throw new ArgumentException($"Неверный алгоритм хэширования: {algorithm}");
             }
 
             return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
         }
 
 
-        // Метод редукции хеша в текст
+        // Метод редукции хэша в текст
         private string ReduceHash(string hash, int step)
         {
             int minLength = 6;
@@ -148,7 +148,7 @@ namespace The_complex_of_testing_hash_functions.Services
             int startIndex = (step * 13) % Math.Max(1, hash.Length - length);
             string reduced = hash.Substring(startIndex, length);
 
-            // Вставляем символ из хеша и добавляем два случайных символа
+            // Вставляем символ из хэша и добавляем два случайных символа
             return $"{reduced}{hash[(startIndex + step) % hash.Length]}{step % 100}";
         }
 

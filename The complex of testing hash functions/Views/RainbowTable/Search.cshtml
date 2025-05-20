@@ -1,38 +1,53 @@
 ﻿@{
-    ViewData["Title"] = "Поиск данных по хешу";
+    ViewData["Title"] = "Поиск данных по хэшу";
 }
 
-<h2>Поиск пароля по хешу</h2>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
 
-<form method="post">
-    <div class="mb-3">
-        <label for="inputHash" class="form-label">Введите хеш:</label>
-        <input type="text" class="form-control" id="inputHash" name="inputHash" required>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow border-0">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0"><i class="fas fa-search"></i> Поиск пароля по хэшу</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        <div class="mb-3">
+                            <label for="inputHash" class="form-label fw-semibold">Введите хэш</label>
+                            <input type="text" class="form-control" id="inputHash" name="inputHash" required placeholder="Например: 4c7e843ad9e2984e066330524048e2b3" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="hashFunctionId" class="form-label fw-semibold">Выберите хэш-функцию</label>
+                            <select class="form-select" id="hashFunctionId" name="hashFunctionId">
+                                @foreach (var hashFunction in ViewBag.HashFunctions)
+                                {
+                                    <option value="@hashFunction.Id">@hashFunction.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-info text-white w-100 fw-semibold">
+                            <i class="fas fa-magnifying-glass"></i> Найти пароль
+                        </button>
+                    </form>
+
+                    @if (ViewBag.Message != null)
+                    {
+                        <div class="alert alert-light border mt-4">
+                            <i class="fas fa-info-circle text-info me-2"></i> <strong>@ViewBag.Message</strong>
+                            @if (ViewBag.PlainText != null)
+                            {
+                                <ul class="mt-2 mb-0">
+                                    <li><strong>Пароль:</strong> <code>@ViewBag.PlainText</code></li>
+                                    <li><strong>Длина редукционной цепочки:</strong> @ViewBag.ChainLength</li>
+                                </ul>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
     </div>
-
-    <div class="mb-3">
-        <label for="hashFunctionId" class="form-label">Выберите хеш-функцию:</label>
-        <select class="form-control" id="hashFunctionId" name="hashFunctionId">
-            @foreach (var hashFunction in ViewBag.HashFunctions)
-            {
-                <option value="@hashFunction.Id">@hashFunction.Name</option>
-            }
-        </select>
-    </div>
-
-    <button type="submit" class="btn btn-primary">Найти пароль</button>
-</form>
-
-@if (ViewBag.Message != null)
-{
-    <div class="alert alert-info mt-3">
-        @ViewBag.Message
-        @if (ViewBag.PlainText != null)
-        {
-            <ul>
-                <li><strong>Пароль:</strong> @ViewBag.PlainText</li>
-                <li><strong>Длина редукционной цепочки:</strong> @ViewBag.ChainLength</li>
-            </ul>
-        }
-    </div>
-}
+</div>

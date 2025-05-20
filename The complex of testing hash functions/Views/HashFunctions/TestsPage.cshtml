@@ -1,148 +1,187 @@
 ﻿@{
-    ViewData["Title"] = "Тестирование хеш-функции";
+    ViewData["Title"] = "Тестирование хэш-функции";
 }
 
-<h1 class="mb-4">Тестирование хеш-функции</h1>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
 
-<!-- Форма ввода -->
-<form method="post" action="/HashFunctions/TestRandomness">
-    <label>Выберите хеш-функцию:</label>
-    <select name="hashFunctionId" class="form-control w-50" required>
-        @if (ViewBag.HashFunctions != null && ViewBag.HashFunctions.Count > 0)
-        {
-            @foreach (var function in ViewBag.HashFunctions)
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0"><i class="fas fa-cog me-2"></i> Тестирование хэш-функции</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="/HashFunctions/TestRandomness">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Выберите хэш-функцию:</label>
+                            <select name="hashFunctionId" class="form-select" required>
+                                @if (ViewBag.HashFunctions != null && ViewBag.HashFunctions.Count > 0)
+                                {
+                                    @foreach (var function in ViewBag.HashFunctions)
+                                    {
+                                        <option value="@function.Id">@function.Name</option>
+                                    }
+                                }
+                                else
+                                {
+                                    <option disabled>Нет доступных хэш-функций</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Введите хэш:</label>
+                            <input type="text" name="hash" class="form-control" required placeholder="Например: 25d55ad283aa400af464c76d713c07ad" />
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Выберите тесты:</label>
+                            <div class="d-flex gap-2 mb-3">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="selectAllTests()">Выбрать все</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="deselectAllTests()">Сбросить</button>
+                            </div>
+
+                            <!-- NIST -->
+                            <div class="border-start border-4 border-primary ps-3 mb-3">
+                                <h6 class="text-primary fw-bold">
+                                    <i class="fas fa-check-double me-1 text-primary"></i> Тесты NIST
+                                </h6>
+                                <div class="row row-cols-2 row-cols-md-3 g-2">
+                                    @foreach (var test in new[] {
+                                    ("Monobit", "Монобит-тест"),
+                                    ("BlockFrequency", "Тест на частоту в блоках"),
+                                    ("Runs", "Тест на серийность"),
+                                    ("LongestRunOfOnes", "Тест на самую длинную последовательность единиц"),
+                                    ("BinaryMatrixRank", "Тест ранга бинарной матрицы"),
+                                    ("DiscreteFourierTransformTest", "Дискретное преобразование Фурье"),
+                                    ("OverlappingTemplateMatching", "Тест совпадения шаблонов"),
+                                    ("MaurersUniversal", "Универсальный тест Маурера"),
+                                    ("LinearComplexity", "Тест линейной сложности"),
+                                    ("Serial", "Серийный тест"),
+                                    ("ApproximateEntropy", "Тест аппроксимационной энтропии"),
+                                    ("CusumTest", "Тест накопительных сумм"),
+                                    ("RandomExcursions", "Тест случайных отклонений"),
+                                    ("RandomExcursionsVariant", "Вариант теста случайных отклонений"),
+                                    ("FrequencyWithinBlock", "Частотный тест в блоках"),
+                                    ("NonOverlappingTemplateMatching", "Тест на несовпадающие шаблоны"),
+                                    ("LempelZivCompression", "Тест Лемпеля-Зива")
+                                    })
+                                    {
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="tests" value="@test.Item1" checked />
+                                            <label class="form-check-label">@test.Item2</label>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Diehard -->
+                            <div class="border-start border-4 border-primary ps-3">
+                                <h6 class="text-primary fw-bold">
+                                    <i class="fas fa-check-double me-1 text-primary"></i> Тесты Diehard
+                                </h6>
+                                <div class="row row-cols-2 row-cols-md-3 g-2">
+                                    @foreach (var test in new[] {
+                                    ("BirthdaySpacings", "Тест дней рождения"),
+                                    ("CountOnes", "Тест подсчёта единиц"),
+                                    ("RanksOfMatrices", "Тест рангов матриц"),
+                                    ("OverlappingPermutations", "Тест на перестановки"),
+                                    ("RunsDiehard", "Тест серийности")
+                                    })
+                                    {
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="tests" value="@test.Item1" checked />
+                                            <label class="form-check-label">@test.Item2</label>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-success w-100 fw-semibold">
+                            <i class="fas fa-play-circle me-1"></i> Запустить тесты
+                        </button>
+                    </form>
+
+                    <script>
+                        function selectAllTests() {
+                            document.querySelectorAll('input[name="tests"]').forEach(el => el.checked = true);
+                        }
+
+                        function deselectAllTests() {
+                            document.querySelectorAll('input[name="tests"]').forEach(el => el.checked = false);
+                        }
+                    </script>
+                </div>
+            </div>
+
+            @if (ViewBag.Results != null)
             {
-                <option value="@function.Id">@function.Name</option>
+                <div class="card mt-4 shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i> Результаты тестирования</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Исходный хэш:</strong> <code>@ViewBag.Hash</code></p>
+                        <p><strong>Бинарное представление:</strong></p>
+                        @functions {
+                        public string FormatBinaryString(string binary, int groupSize = 16)
+                        {
+                            return string.Join("<br>", System.Text.RegularExpressions.Regex
+                            .Matches(binary, $".{{1,{groupSize}}}")
+                            .Cast<System.Text.RegularExpressions.Match>()
+                            .Select(m => m.Value));
+                        }
+                    }
+                    <pre class="bg-light p-3 rounded">@Html.Raw(FormatBinaryString(ViewBag.BinaryHash?.ToString() ?? ""))</pre>
+                    <p><strong>Хэш-функция:</strong> @ViewBag.HashFunctionName</p>
+
+                    <table class="table table-bordered table-hover mt-3">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Название теста</th>
+                                <th>Результат</th>
+                                <th class="text-center">Пройден?</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var result in ViewBag.Results)
+                                {
+                                    <tr>
+                                        <td>@result.TestType</td>
+                                        <td>@result.Score</td>
+                                        <td class="text-center">
+                                            @if (result.TestType.Contains("p-value") || (result.Score >= 0 && result.Score <= 1))
+                                            {
+                                                @if (result.Score > 0.01)
+                                                {
+                                                    <span class="text-success fw-bold">✅</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-danger fw-bold">❌</span>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                @if (result.Score < 1.96)
+                                                {
+                                                    <span class="text-success fw-bold">✅</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-danger fw-bold">❌</span>
+                                                }
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             }
-        }
-        else
-        {
-            <option disabled>Нет доступных хеш-функций</option>
-        }
-    </select>
-
-    <label>Введите хеш:</label>
-    <input type="text" name="hash" class="form-control w-50" required />
-
-    <div class="mt-3">
-        <label><strong>Выберите тесты:</strong></label>
-
-        <div class="d-flex gap-2 mb-3">
-            <button type="button" class="btn btn-info" onclick="selectAllTests()">Выбрать все</button>
-            <button type="button" class="btn btn-warning" onclick="deselectAllTests()">Сбросить</button>
         </div>
-
-        <!-- Группа тестов NIST -->
-        <div class="border p-3 mb-3">
-            <h5 class="text-primary">Тесты NIST</h5>
-            <div><input type="checkbox" name="tests" value="Monobit" checked /> Монобит-тест</div>
-            <div><input type="checkbox" name="tests" value="BlockFrequency" checked /> Тест на частоту в блоках</div>
-            <div><input type="checkbox" name="tests" value="Runs" checked /> Тест на серийность</div>
-            <div><input type="checkbox" name="tests" value="LongestRunOfOnes" checked /> Тест на самую длинную последовательность единиц</div>
-            <div><input type="checkbox" name="tests" value="BinaryMatrixRank" checked /> Тест ранга бинарной матрицы</div>
-            <div><input type="checkbox" name="tests" value="DiscreteFourierTransformTest" checked /> Дискретное преобразование Фурье</div>
-            <div><input type="checkbox" name="tests" value="OverlappingTemplateMatching" checked /> Тест совпадения шаблонов</div>
-            <div><input type="checkbox" name="tests" value="MaurersUniversal" checked /> Универсальный тест Маурера</div>
-            <div><input type="checkbox" name="tests" value="LinearComplexity" checked /> Тест линейной сложности</div>
-            <div><input type="checkbox" name="tests" value="Serial" checked /> Серийный тест</div>
-            <div><input type="checkbox" name="tests" value="ApproximateEntropy" checked /> Тест аппроксимационной энтропии</div>
-            <div><input type="checkbox" name="tests" value="CusumTest" checked /> Тест накопительных сумм</div>
-            <div><input type="checkbox" name="tests" value="RandomExcursions" checked /> Тест случайных отклонений</div>
-            <div><input type="checkbox" name="tests" value="RandomExcursionsVariant" checked /> Вариант теста случайных отклонений</div>
-            <div><input type="checkbox" name="tests" value="FrequencyWithinBlock" checked /> Частотный тест в блоках</div>
-            <div><input type="checkbox" name="tests" value="NonOverlappingTemplateMatching" checked /> Тест на несовпадающие шаблоны</div>
-            <div><input type="checkbox" name="tests" value="LempelZivCompression" checked /> Тест Лемпеля-Зива</div>
-        </div>
-
-        <!-- Группа тестов Diehard -->
-        <div class="border p-3 mb-3">
-            <h5 class="text-secondary">Тесты Diehard</h5>
-            <div><input type="checkbox" name="tests" value="BirthdaySpacings" checked /> Тест дней рождения</div>
-            <div><input type="checkbox" name="tests" value="CountOnes" checked /> Тест подсчёта единиц</div>
-            <div><input type="checkbox" name="tests" value="RanksOfMatrices" checked /> Тест рангов матриц</div>
-            <div><input type="checkbox" name="tests" value="OverlappingPermutations" checked /> Тест на перестановки</div>
-            <div><input type="checkbox" name="tests" value="RunsDiehard" checked /> Тест серийности</div>
-        </div>
-
-
-        <script>
-            function selectAllTests() {
-                document.querySelectorAll('input[name="tests"]').forEach(el => el.checked = true);
-            }
-
-            function deselectAllTests() {
-                document.querySelectorAll('input[name="tests"]').forEach(el => el.checked = false);
-            }
-        </script>
     </div>
-
-    <button type="submit" class="btn btn-success mt-2">Запустить тесты</button>
-</form>
-
-<hr />
-
-<!-- Результаты тестирования -->
-@if (ViewBag.Results != null)
-{
-    <h2>Результаты тестирования</h2>
-    <p><strong>Исходный хеш:</strong> @ViewBag.Hash</p>
-
-    @functions {
-        public string FormatBinaryString(string binary, int groupSize = 16)
-        {
-            return string.Join("<br>", System.Text.RegularExpressions.Regex
-                .Matches(binary, $".{{1,{groupSize}}}")
-                .Cast<System.Text.RegularExpressions.Match>()
-                .Select(m => m.Value));
-        }
-    }
-
-    <p><strong>Бинарное представление блоками по 16 символов:</strong></p>
-    <pre style="word-wrap: break-word; white-space: pre-wrap;">@Html.Raw(FormatBinaryString(ViewBag.BinaryHash?.ToString() ?? ""))</pre>
-    
-    <p><strong>Хеш-функция:</strong> @ViewBag.HashFunctionName</p>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Название теста</th>
-                <th>Результат (Score)</th>
-                <th>Пройден?</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var result in ViewBag.Results)
-            {
-                <tr>
-                    <td>@result.TestType</td>
-                    <td>@result.Score</td>
-                    <td>
-                        @if (result.TestType.Contains("p-value") || (result.Score >= 0 && result.Score <= 1))
-                        {
-                            // p-value тест: проверяем, больше ли 0.01
-                            @if (result.Score > 0.01)
-                            {
-                                <span style="color: green;">✅</span>
-                            }
-                            else
-                            {
-                                <span style="color: red;">❌</span>
-                            }
-                        }
-                        else
-                        {
-                            // Z-значение тест: проверяем, меньше ли 1.96
-                            @if (result.Score < 1.96)
-                            {
-                                <span style="color: green;">✅</span>
-                            }
-                            else
-                            {
-                                <span style="color: red;">❌</span>
-                            }
-                        }
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
+</div>

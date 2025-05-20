@@ -112,7 +112,7 @@ namespace The_complex_of_testing_hash_functions.Controllers
 
         public async Task<IActionResult> TestRandomness()
         {
-            return await ListOfHashFunctions(); // Загружаем страницу с хеш-функциями
+            return await ListOfHashFunctions(); // Загружаем страницу с хэш-функциями
         }
 
         [HttpPost]
@@ -120,7 +120,7 @@ namespace The_complex_of_testing_hash_functions.Controllers
         {
             if (string.IsNullOrEmpty(hash) || tests == null || tests.Length == 0)
             {
-                ViewBag.Error = "Введите хеш и выберите хотя бы один тест!";
+                ViewBag.Error = "Введите хэш и выберите хотя бы один тест!";
                 return await ListOfHashFunctions();  // Перезагружаем страницу с сообщением об ошибке
             }
 
@@ -131,14 +131,14 @@ namespace The_complex_of_testing_hash_functions.Controllers
             }
             catch (Exception ex)
             {
-                ViewBag.Error = $"Ошибка при преобразовании хеша: {ex.Message}";
+                ViewBag.Error = $"Ошибка при преобразовании хэша: {ex.Message}";
                 return await ListOfHashFunctions();
             }
 
             var hashFunction = await _context.HashFunctions.FindAsync(hashFunctionId);
             if (hashFunction == null)
             {
-                ViewBag.Error = "Выбранная хеш-функция не найдена!";
+                ViewBag.Error = "Выбранная хэш-функция не найдена!";
                 return await ListOfHashFunctions();
             }
 
@@ -332,7 +332,7 @@ namespace The_complex_of_testing_hash_functions.Controllers
 
             if (functions == null || functions.Count == 0)
             {
-                ViewBag.Message = "Нет доступных хеш-функций!";
+                ViewBag.Message = "Нет доступных хэш-функций!";
                 ViewBag.HashFunctions = new List<HashFunction>(); // Пустой список, чтобы не было null
             }
             else
