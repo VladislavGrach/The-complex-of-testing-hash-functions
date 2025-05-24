@@ -50,7 +50,7 @@
                                 <div class="row row-cols-2 row-cols-md-3 g-2">
                                     @foreach (var test in new[] {
                                     ("Monobit", "Монобит-тест"),
-                                    ("BlockFrequency", "Тест на частоту в блоках"),
+                                    ("FrequencyWithinBlock", "Тест на частоту в блоках"),
                                     ("Runs", "Тест на серийность"),
                                     ("LongestRunOfOnes", "Тест на самую длинную последовательность единиц"),
                                     ("BinaryMatrixRank", "Тест ранга бинарной матрицы"),
@@ -63,7 +63,6 @@
                                     ("CusumTest", "Тест накопительных сумм"),
                                     ("RandomExcursions", "Тест случайных отклонений"),
                                     ("RandomExcursionsVariant", "Вариант теста случайных отклонений"),
-                                    ("FrequencyWithinBlock", "Частотный тест в блоках"),
                                     ("NonOverlappingTemplateMatching", "Тест на несовпадающие шаблоны"),
                                     ("LempelZivCompression", "Тест Лемпеля-Зива")
                                     })
@@ -145,7 +144,7 @@
                                 <th class="text-center">Пройден?</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        @* <tbody>
                             @foreach (var result in ViewBag.Results)
                                 {
                                     <tr>
@@ -178,7 +177,35 @@
                                     </tr>
                                 }
                             </tbody>
-                        </table>
+                        </table> *@
+                        <tbody>
+                            @foreach (var result in ViewBag.Results)
+                                {
+                                    <tr>
+                                        <td>@result.TestType</td>
+                                        <td>
+                                            @(result.Score == -1
+                                                ? "Недостаточно данных"
+                                                : $"{result.Score}")
+                                        </td>
+                                        <td class="text-center">
+                                            @if (result.Score == -1)
+                                            {
+                                                <span class="text-warning fw-bold">⚠️</span>
+                                            }
+                                            else if (result.Score >= 0.01 && result.Score <= 1.96)
+                                            {
+                                                <span class="text-success fw-bold">✅</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-danger fw-bold">❌</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+
                     </div>
                 </div>
             }

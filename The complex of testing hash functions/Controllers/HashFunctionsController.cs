@@ -173,7 +173,7 @@ namespace The_complex_of_testing_hash_functions.Controllers
                 if (tests.Contains("FrequencyWithinBlock"))
                 {
                     Console.WriteLine("✅ 2");
-                    AddTestResult("Частотный тест в блоках", _nistService.FrequencyTestWithinBlock(binaryHash));
+                    AddTestResult("Тест на частоту в блоках", _nistService.FrequencyTestWithinBlock(binaryHash));
                 }
 
                 if (tests.Contains("Runs"))
@@ -247,7 +247,7 @@ namespace The_complex_of_testing_hash_functions.Controllers
                 if (tests.Contains("CusumTest"))
                 {
                     Console.WriteLine("✅ 13");
-                    AddTestResult("Тест накопленной суммы (Cusum)", _nistService.CusumTest(binaryHash));
+                    AddTestResult("Тест накопленной суммы", _nistService.CusumTest(binaryHash));
                 }
 
 
@@ -260,8 +260,7 @@ namespace The_complex_of_testing_hash_functions.Controllers
                 if (tests.Contains("RandomExcursionsVariant"))
                 {
                     Console.WriteLine("✅ 15");
-                    double score = _nistService.RandomExcursionsVariantTest(binaryHash).Values.Sum();
-                    AddTestResult("Тест вариантов случайных экскурсий", score);
+                    AddTestResult("Тест вариантов случайных экскурсий", _nistService.RandomExcursionsVariantTest(binaryHash));
                 }
 
                 if (tests.Contains("LempelZivCompression"))

@@ -1,147 +1,296 @@
 ﻿using System;
 using System.Linq;
+using System.Numerics;
 using The_complex_of_testing_hash_functions.Interfaces;
 
 namespace The_complex_of_testing_hash_functions.Services
 {
     public class NistTestingService : INistTestingService
     {
+        #region Monobit Test
         // Монобит-тест
         public double MonobitTest(string bits)
         {
             int n = bits.Length;
-            int sum = bits.Count(bit => bit == '1') - bits.Count(bit => bit == '0');
-            double S = Math.Abs(sum) / Math.Sqrt(n);
-            return S; // Чем меньше, тем случайнее
-        }
-
-        // Частотный тест в блоках
-        public double FrequencyTestWithinBlock(string binary, int blockSize = 128)
-        {
-            int n = binary.Length;
-            int numBlocks = n / blockSize;
-            if (numBlocks == 0) return double.NaN; // Недостаточно данных
-            double sumChiSquare = 0;
-
-            for (int i = 0; i < numBlocks; i++)
-            {
-                string block = binary.Substring(i * blockSize, blockSize);
-                int onesCount = block.Count(c => c == '1');
-                double pi = (double)onesCount / blockSize;
-                double chiSquare = 4.0 * blockSize * (pi - 0.5) * (pi - 0.5);
-                sumChiSquare += chiSquare;
-            }
-
-            double pValue = Math.Exp(-sumChiSquare / 2); // Оценка вероятности
+            int sum = bits.Sum(bit => bit == '1' ? 1 : -1);
+            double sObs = Math.Abs(sum) / Math.Sqrt(n);
+            double pValue = Erfc(sObs / Math.Sqrt(2.0));
             return pValue;
         }
 
+        // Комплементарная функция ошибок (erfc) через аппроксимацию Абрамовича
+        private double Erfc(double x)
+        {
+            double z = Math.Abs(x);
+            double t = 1.0 / (1.0 + 0.5 * z);
+            double tau = t * Math.Exp(-z * z - 1.26551223 +
+                                      t * (1.00002368 +
+                                      t * (0.37409196 +
+                                      t * (0.09678418 +
+                                      t * (-0.18628806 +
+                                      t * (0.27886807 +
+                                      t * (-1.13520398 +
+                                      t * (1.48851587 +
+                                      t * (-0.82215223 +
+                                      t * 0.17087277)))))))));
+
+            return x >= 0.0 ? tau : 2.0 - tau;
+        }
+        #endregion
+
+        #region Frequency Test Within Block
+        // Частотный тест в блоках
+        public double FrequencyTestWithinBlock(string bits, int blockSize = 128)
+        {
+            int n = bits.Length;
+            int numBlocks = n / blockSize;
+            if (numBlocks == 0) return double.NaN;
+
+            double chiSquare = 0;
+            for (int i = 0; i < numBlocks; i++)
+            {
+                string block = bits.Substring(i * blockSize, blockSize);
+                int onesCount = block.Count(c => c == '1');
+                double pi = (double)onesCount / blockSize;
+                chiSquare += 4.0 * blockSize * Math.Pow(pi - 0.5, 2);
+            }
+
+            double pValue = ChiSquaredCDF(chiSquare, numBlocks);
+            return 1.0 - pValue; // так как мы хотим верхнюю хвостовую вероятность
+        }
+        #endregion
+
+        #region Runs Test
         // Тест на серийность
         public double RunsTest(string bits)
         {
-            int onesCount = 0, zerosCount = 0;
-            int runs = 0;
-            char lastBit = bits[0];
+            int n = bits.Length;
+            int ones = bits.Count(c => c == '1');
+            double pi = (double)ones / n;
 
-            foreach (char bit in bits)
+            if (Math.Abs(pi - 0.5) >= (2.0 / Math.Sqrt(n)))
             {
-                if (bit == '1') onesCount++;
-                else zerosCount++;
-                if (bit != lastBit)
-                {
+                return 0.0; // последовательность недостаточно сбалансирована — тест неприменим
+            }
+
+            int runs = 1;
+            for (int i = 1; i < n; i++)
+            {
+                if (bits[i] != bits[i - 1])
                     runs++;
-                    lastBit = bit;
-                }
             }
 
-            double expectedRuns = ((2.0 * onesCount * zerosCount) / (onesCount + zerosCount)) + 1;
-            return Math.Abs(runs - expectedRuns); // Чем меньше разница, тем случайнее
-        }
+            double expectedRuns = 2 * n * pi * (1 - pi);
+            double variance = 2 * n * pi * (1 - pi) * (2 * n * pi * (1 - pi) - 1) / (n - 1);
+            double z = Math.Abs(runs - expectedRuns) / Math.Sqrt(variance);
 
+            return Erfc(z / Math.Sqrt(2.0));
+        }
+        #endregion
+
+        #region Longest Run Of Ones Test
         // Тест на самую длинную последовательность единиц в блоке
-        public double LongestRunOfOnesTest(string bits)
+        public double LongestRunOfOnesTest(string bits, int blockSize = 128)
         {
-            int maxRun = 0, currentRun = 0;
+            int n = bits.Length;
+            int numBlocks = n / blockSize;
+            if (numBlocks == 0) return double.NaN;
 
-            foreach (char bit in bits)
+            int[] frequencies = new int[4]; // Категории по длине серии
+            for (int i = 0; i < numBlocks; i++)
             {
-                if (bit == '1')
+                string block = bits.Substring(i * blockSize, blockSize);
+                int maxRun = 0, currentRun = 0;
+
+                foreach (char bit in block)
                 {
-                    currentRun++;
-                    maxRun = Math.Max(maxRun, currentRun);
+                    if (bit == '1')
+                    {
+                        currentRun++;
+                        maxRun = Math.Max(maxRun, currentRun);
+                    }
+                    else
+                    {
+                        currentRun = 0;
+                    }
                 }
-                else
-                {
-                    currentRun = 0;
-                }
+
+                // Категории согласно NIST (для blockSize = 128)
+                if (maxRun <= 4) frequencies[0]++;
+                else if (maxRun == 5) frequencies[1]++;
+                else if (maxRun == 6) frequencies[2]++;
+                else frequencies[3]++;
             }
 
-            return maxRun;  // Возвращаем длину самой длинной последовательности
-        }
+            // Ожидаемые вероятности (NIST SP 800-22, blockSize = 128)
+            double[] pi = { 0.1174, 0.2430, 0.2493, 0.3903 };
+            double chiSquared = 0;
 
+            for (int i = 0; i < pi.Length; i++)
+            {
+                double expected = numBlocks * pi[i];
+                double diff = frequencies[i] - expected;
+                chiSquared += (diff * diff) / expected;
+            }
+
+            return 1.0 - ChiSquaredCDF(chiSquared, pi.Length - 1); // k = 3
+        }
+        #endregion
+
+        #region Binary Matrix Rank Test
         // Тест ранга бинарной матрицы
         public double BinaryMatrixRankTest(string bits)
         {
-            int n = bits.Length;
+            int M = 32, Q = 32;
+            int matrixSize = M * Q;
+            long N = bits.Length / matrixSize;
 
-            // Выбираем максимально возможный размер матрицы
-            int matrixSize = (int)Math.Sqrt(n);
-            if (matrixSize < 2) return -1;  // Если слишком короткая строка
+            if (N == 0) return 0.0; // вместо NaN — безопасное значение
 
-            int[,] matrix = new int[matrixSize, matrixSize];
-            int index = 0;
+            int fullRank = 0, rankMinusOne = 0, below = 0;
 
-            for (int i = 0; i < matrixSize; i++)
+            for (int i = 0; i < N; i++)
             {
-                for (int j = 0; j < matrixSize; j++)
+                int[,] matrix = new int[M, Q];
+                int index = i * matrixSize;
+
+                for (int row = 0; row < M; row++)
                 {
-                    matrix[i, j] = bits[index++] - '0';
+                    for (int col = 0; col < Q; col++)
+                    {
+                        if (index >= bits.Length) return 0.0; // безопасность
+                        matrix[row, col] = bits[index++] == '1' ? 1 : 0;
+                    }
                 }
+
+                int rank = ComputeRank(matrix);
+                if (rank == M) fullRank++;
+                else if (rank == M - 1) rankMinusOne++;
+                else below++;
             }
 
-            return ComputeRank(matrix) / (double)matrixSize; // Возвращаем нормализованный ранг
+            double[] expectedProbabilities = { 0.2888, 0.5776, 0.1336 };
+            int[] observedCounts = { fullRank, rankMinusOne, below };
+
+            double chiSquared = 0.0;
+            for (int i = 0; i < 3; i++)
+            {
+                double expected = expectedProbabilities[i] * N;
+                if (expected <= 0) return 0.0; // избегаем деления на 0 или отрицательных ожиданий
+                chiSquared += Math.Pow(observedCounts[i] - expected, 2) / expected;
+            }
+
+            double pValue = 1.0 - ChiSquaredCDF(chiSquared, 2);
+
+            if (!double.IsFinite(pValue) || pValue < 0.0 || pValue > 1.0)
+                return 0.0;
+
+            return Math.Round(pValue, 8);
         }
 
+        #endregion
+
+        #region Discrete Fourier Transform Test
         // Дискретное преобразование Фурье
         public double DiscreteFourierTransformTest(string bits)
         {
             int n = bits.Length;
-            double[] sequence = bits.Select(bit => bit == '1' ? 1.0 : -1.0).ToArray();
-            double[] spectrum = new double[n];
+            if (n < 100) return double.NaN; // слишком короткая последовательность
 
+            // Преобразование {0,1} → {-1,+1}
+            double[] sequence = bits.Select(b => b == '1' ? 1.0 : -1.0).ToArray();
+
+            // Выполняем дискретное преобразование Фурье
+            Complex[] spectrum = new Complex[n];
             for (int k = 0; k < n; k++)
             {
+                double real = 0, imag = 0;
                 for (int t = 0; t < n; t++)
                 {
-                    spectrum[k] += sequence[t] * Math.Cos(2 * Math.PI * k * t / n);
+                    double angle = 2 * Math.PI * k * t / n;
+                    real += sequence[t] * Math.Cos(angle);
+                    imag -= sequence[t] * Math.Sin(angle);
                 }
+                spectrum[k] = new Complex(real, imag);
             }
 
-            double peak = spectrum.Max();
-            return peak / Math.Sqrt(n);
-        }
+            // Рассчитываем амплитуды
+            double[] magnitudes = spectrum.Select(c => c.Magnitude).ToArray();
 
+            // Определяем порог
+            double threshold = Math.Sqrt(Math.Log(1 / 0.05) * n); // ≈ √(n * ln(20))
+
+            // Считаем количество пиков выше порога
+            int count = magnitudes.Take(n / 2).Count(m => m > threshold);
+            double expected = 0.95 * n / 2;
+            double variance = n * 0.95 * 0.05 / 4;
+            double z = (count - expected) / Math.Sqrt(variance);
+
+            // Используем нормальное приближение
+            double pValue = ErfComplement(Math.Abs(z) / Math.Sqrt(2));
+            return pValue;
+        }
+        #endregion
+
+        #region Non Overlapping Template Matching Test
         //  Тест на несовпадающие шаблоны
-        public double NonOverlappingTemplateMatchingTest(string binary, string template = "000111")
+        public double NonOverlappingTemplateMatchingTest(string bits, string template = "000111")
         {
-            int templateLength = template.Length;
-            int matches = 0;
+            int m = template.Length;
+            int n = bits.Length;
+            int blocks = n / 1000;
+            if (blocks == 0) return -1;
 
-            for (int i = 0; i <= binary.Length - templateLength; i += templateLength) // Без наложения
+            double[] matchCounts = new double[blocks];
+
+            for (int i = 0; i < blocks; i++)
             {
-                if (binary.Substring(i, templateLength) == template)
+                string block = bits.Substring(i * 1000, 1000);
+                int count = 0;
+                for (int j = 0; j <= block.Length - m;)
                 {
-                    matches++;
+                    if (block.Substring(j, m) == template)
+                    {
+                        count++;
+                        j += m;
+                    }
+                    else
+                    {
+                        j++;
+                    }
                 }
+                matchCounts[i] = count;
             }
 
-            return matches;
-        }
+            // Математическое ожидание и дисперсия
+            double lambda = (1000 - m + 1) / Math.Pow(2, m);
+            double variance = 1000 * ((1.0 / Math.Pow(2, m)) - ((2 * m - 1) / Math.Pow(2, 2 * m)));
 
+            // Защита от деления на 0
+            if (variance == 0 || double.IsNaN(variance) || double.IsInfinity(variance))
+                return -1;
+
+            double chiSquared = matchCounts.Sum(x => Math.Pow(x - lambda, 2)) / variance;
+
+            // Проверка на валидность chiSquared
+            if (double.IsNaN(chiSquared) || double.IsInfinity(chiSquared))
+                return -1;
+
+            // Кол-во степеней свободы = blocks
+            double pValue = ChiSquaredCDF(chiSquared, blocks);
+
+            // Финальная проверка перед возвратом
+            return double.IsFinite(pValue) ? pValue : -1;
+        }
+        #endregion
+
+        #region Overlapping Template Matching Test
         // Тест на совпадающие шаблоны
         public double OverlappingTemplateMatchingTest(string bits, int m = 10)
         {
-            int pattern = Convert.ToInt32(new string('1', m), 2);  // Шаблон 1111111111
+            if (m <= 0 || m > bits.Length) return -1;
+
+            int pattern = Convert.ToInt32(new string('1', m), 2);
             int count = 0;
 
             for (int i = 0; i <= bits.Length - m; i++)
@@ -150,275 +299,445 @@ namespace The_complex_of_testing_hash_functions.Services
                 if (subPattern == pattern) count++;
             }
 
-            return count;
+            // Примерная оценка p-value (уточните по NIST SP 800-22)
+            double lambda = (bits.Length - m + 1) / Math.Pow(2, m);
+            double pValue = Math.Exp(-lambda) * Math.Pow(lambda, count) / Factorial(count);
+            return pValue;
         }
+        #endregion
 
+        #region Maurers Universal Test
         // Универсальный тест Маурера
         public double MaurersUniversalTest(string bits)
         {
             int n = bits.Length;
-            if (n < 32) return -1;  // Минимальный порог длины
+            if (n < 1000) return -1;
 
-            int L = 8;
-            while ((1 << L) > n / 4 && L > 4) // Делаем L не слишком маленьким
-            {
-                L--;
-            }
+            int L = 7;
+            while ((1 << L) > n / 10 && L > 4) L--;
 
-            int Q = Math.Min(1 << L, n / (2 * L));  // Q не превышает половины доступных блоков
+            int Q = 1 << L;
             int K = n / L - Q;
+            if (K <= 0 || L < 5 || L >= 10) return -1;
 
-            if (K <= 0)
-            {
-                Q = Math.Max(1, n / (2 * L));  // Уменьшаем Q, но не ниже 1
-                K = n / L - Q;
-
-                if (K <= 0)  // Если после корректировки всё равно проблема
-                {
-                    return -1;
-                }
-            }
-
-            var table = new int[Q];
+            int[] table = new int[1 << L];
             int sum = 0;
+
+            for (int i = 0; i < Q; i++)
+            {
+                int pattern = Convert.ToInt32(bits.Substring(i * L, L), 2);
+                table[pattern] = i + 1;
+            }
 
             for (int i = Q; i < Q + K; i++)
             {
-                if (i * L + L > bits.Length) break; // Проверка выхода за границы строки
-
-                int index = Convert.ToInt32(bits.Substring(i * L, L), 2);
-                if (index >= Q)
-                {
-                    index = Q - 1;  // Коррекция индекса
-                }
-
-                sum += i + 1 - table[index];
-                table[index] = i + 1;
+                int pattern = Convert.ToInt32(bits.Substring(i * L, L), 2);
+                sum += (i + 1) - table[pattern];
+                table[pattern] = i + 1;
             }
 
-            double result = sum / (double)K;
+            double fn = sum / (double)K;
 
-            if (double.IsInfinity(result) || double.IsNaN(result))
-            {
-                return -1;
-            }
+            double[] expectedValues = { 0, 0, 0, 0, 0, 5.2177052, 6.1962507, 7.1836656, 8.1764248, 9.1723243, 10.170032 };
+            double[] variances = { 0, 0, 0, 0, 0, 2.954, 3.125, 3.238, 3.311, 3.356, 3.384 };
 
-            return result;
+            double expected = expectedValues[L];
+            double variance = variances[L];
+
+            double z = (fn - expected) / Math.Sqrt(variance);
+            return 2.0 * (1.0 - NormalCDF(Math.Abs(z)));
         }
+        #endregion
 
+        #region Lempel Ziv Compression Test
         // Тест Лемпеля-Зива
         public double LempelZivCompressionTest(string bits)
         {
-            HashSet<string> dictionary = new();
+            if (bits.Length < 128) return -1; // Минимум 128 бит
+
+            HashSet<string> dictionary = new() { "" };
             string current = "";
+            int wordCount = 0;
 
             foreach (char bit in bits)
             {
                 current += bit;
-                if (!dictionary.Contains(current))
-                {
-                    dictionary.Add(current);
-                    current = "";
-                }
+                if (!dictionary.Contains(current)) continue;
+
+                dictionary.Add(current);
+                wordCount++;
+                current = "";
             }
+            if (!string.IsNullOrEmpty(current)) wordCount++;
 
-            return dictionary.Count / (double)bits.Length;
+            // Эмпирическая оценка для малых данных
+            double expected = bits.Length * 0.072;
+            double z = (wordCount - expected) / Math.Sqrt(expected * 0.1);
+            return 2 * (1 - NormalCDF(Math.Abs(z)));
         }
+        #endregion
 
+        #region Linear Complexity Test
         // Тест линейной сложности
-        public double LinearComplexityTest(string bits, int M = 500)
+        public double LinearComplexityTest(string bits, int M = 32) // Уменьшенный блок
         {
-            int n = bits.Length;
-            if (n < 2) return -1; // Минимальная длина
+            if (bits.Length < M * 4) return -1;
 
-            // Если строка короче M, уменьшаем размер блока
-            M = Math.Min(M, n);
-            int N = n / M;
-            if (N == 0) return -1; // Если после изменения всё равно не подходит
+            int N = bits.Length / M;
+            double[] pi = { 0.2, 0.3, 0.5 }; // Упрощенные веса
+            int[] v = new int[3];
 
-            int[] C = new int[M + 1];
-            int[] B = new int[M + 1];
-            C[0] = B[0] = 1;
-
-            int L = 0, m = -1, d;
-
-            for (int nIdx = 0; nIdx < N; nIdx++)
+            for (int i = 0; i < N; i++)
             {
-                d = 0;
+                string block = bits.Substring(i * M, M);
+                int L = BerlekampMassey(block); // Упрощенная реализация
 
-                for (int i = 0; i <= L && (nIdx * M + i) < bits.Length; i++)
-                {
-                    d ^= C[i] * (bits[nIdx * M + i] - '0');
-                }
-
-                if (d == 1)
-                {
-                    int[] T = (int[])C.Clone();
-                    for (int i = 0; i < B.Length && (i + nIdx - m) < M; i++)
-                    {
-                        C[i + nIdx - m] ^= B[i];
-                    }
-                    if (2 * L <= nIdx)
-                    {
-                        L = nIdx + 1 - L;
-                        m = nIdx;
-                        B = T;
-                    }
-                }
+                if (L < M * 0.4) v[0]++;
+                else if (L < M * 0.6) v[1]++;
+                else v[2]++;
             }
 
-            double complexity = (double)L / M;
+            double chiSquared = 0;
+            for (int i = 0; i < 3; i++)
+                chiSquared += Math.Pow(v[i] - N * pi[i], 2) / (N * pi[i]);
 
-            if (double.IsNaN(complexity) || double.IsInfinity(complexity))
-            {
-                return -1;
-            }
-
-            return complexity;
+            return ChiSquaredCDF(chiSquared, 2);
         }
+        #endregion
 
+        #region Serial Test
         // Серийный тест
         public double SerialTest(string bits, int m = 2)
         {
+            // Проверка минимальной длины
             int n = bits.Length;
+            if (n < 10 * Math.Pow(2, m)) return -1; // Минимум 10*2^m бит
+
             Dictionary<string, int> freq = new();
 
-            for (int i = 0; i <= n - m; i++)
+            // Подсчёт частот (без перекрытия для независимости)
+            for (int i = 0; i <= n - m; i += m)
             {
-                string substring = bits.Substring(i, m);
-                if (!freq.ContainsKey(substring)) freq[substring] = 0;
-                freq[substring]++;
+                string pattern = bits.Substring(i, m);
+                freq[pattern] = freq.GetValueOrDefault(pattern, 0) + 1;
             }
 
+            // Расчёт χ²
+            double expected = (double)(n / m) / Math.Pow(2, m);
             double chiSquare = 0;
-            double expected = (double)n / Math.Pow(2, m);
-
-            foreach (var kv in freq.Values)
+            foreach (var count in freq.Values)
             {
-                chiSquare += Math.Pow(kv - expected, 2) / expected;
+                chiSquare += Math.Pow(count - expected, 2) / expected;
             }
 
-            return chiSquare;
+            // Преобразование χ² в p-value
+            return ChiSquaredCDF(chiSquare, (int)Math.Pow(2, m) - 1);
         }
+        #endregion
 
+        #region Approximate Entropy Test
         // Тест приближенной энтропии
         public double ApproximateEntropyTest(string bits, int m = 2)
         {
             int n = bits.Length;
-            Dictionary<string, int> freqM = new();
-            Dictionary<string, int> freqM1 = new();
+            if (m < 1 || n < m + 1) return -1;
 
-            for (int i = 0; i < n - m; i++)
-            {
-                string subM = bits.Substring(i, m);
-                string subM1 = bits.Substring(i, m + 1);
+            double phi_m = Phi(bits, m);
+            double phi_m1 = Phi(bits, m + 1);
 
-                if (freqM.ContainsKey(subM)) freqM[subM]++;
-                else freqM[subM] = 1;
+            double apEn = phi_m - phi_m1;
+            double chiSquared = 2.0 * n * (Math.Log(2) - apEn);
+            int degreesOfFreedom = (1 << (m - 1));
 
-                if (freqM1.ContainsKey(subM1)) freqM1[subM1]++;
-                else freqM1[subM1] = 1;
-            }
-
-            double entropyM = freqM.Values.Sum(f => f * Math.Log(f)) / n;
-            double entropyM1 = freqM1.Values.Sum(f => f * Math.Log(f)) / n;
-
-            return entropyM - entropyM1;
+            return ChiSquaredCDF(chiSquared, degreesOfFreedom);
         }
+        #endregion
 
+        #region Cusum Test
         // Тест накопленных сумм
         public double CusumTest(string bits)
         {
             int n = bits.Length;
-            int sum = 0, maxDeviation = 0;
+            if (n < 1) return -1;
 
-            foreach (char bit in bits)
+            // Преобразуем в последовательность +1/-1
+            int[] x = bits.Select(b => b == '1' ? 1 : -1).ToArray();
+
+            // Кумулятивная сумма
+            int[] S = new int[n];
+            S[0] = x[0];
+            for (int i = 1; i < n; i++) S[i] = S[i - 1] + x[i];
+
+            // Максимальное отклонение от нуля
+            int z = S.Select(Math.Abs).Max();
+
+            // Вычисление p-value (двусторонний тест)
+            double sum = 0.0;
+            for (int k = ((-n / z + 1) / 4); k <= ((n / z - 1) / 4); k++)
             {
-                sum += bit == '1' ? 1 : -1;
-                maxDeviation = Math.Max(maxDeviation, Math.Abs(sum));
+                double term1 = NormalCDF((4 * k + 1) * z / Math.Sqrt(n));
+                double term2 = NormalCDF((4 * k - 1) * z / Math.Sqrt(n));
+                sum += term1 - term2;
             }
 
-            return maxDeviation / Math.Sqrt(n);
+            for (int k = ((-n / z - 3) / 4); k <= ((n / z - 1) / 4); k++)
+            {
+                double term1 = NormalCDF((4 * k + 3) * z / Math.Sqrt(n));
+                double term2 = NormalCDF((4 * k + 1) * z / Math.Sqrt(n));
+                sum -= term1 - term2;
+            }
+
+            double p = 1.0 - sum;
+            return p;
         }
 
+        #endregion
+
+        #region Random Excursions Test
         // Тест случайных экскурсий
-        public int RandomExcursionsTest(string bits)
+        public double RandomExcursionsTest(string bits)
         {
-            int sum = 0, zeroCrossings = 0;
+            // Проверка минимальной длины (NIST требует минимум 10^6 бит)
+            if (bits.Length < 1000000) return -1;
 
-            foreach (char bit in bits)
+            // Шаг 1: Строим последовательность частичных сумм
+            int[] S = new int[bits.Length + 1];
+            for (int i = 0; i < bits.Length; i++)
             {
-                sum += bit == '1' ? 1 : -1;
-                if (sum == 0) zeroCrossings++;
+                S[i + 1] = S[i] + (bits[i] == '1' ? 1 : -1);
             }
 
-            // Ограничиваем результат, чтобы избежать больших чисел
-            return Math.Min(zeroCrossings, 10);
+            // Шаг 2: Находим все нулевые пересечения (J)
+            List<int> zeroCrossings = new();
+            for (int i = 1; i < S.Length; i++)
+            {
+                if (S[i] == 0) zeroCrossings.Add(i);
+            }
+            zeroCrossings.Add(S.Length - 1);
+
+            // Шаг 3: Считаем частоты состояний (-4..4)
+            int[,] v = new int[8, zeroCrossings.Count];
+            for (int k = 0; k < zeroCrossings.Count - 1; k++)
+            {
+                int start = zeroCrossings[k];
+                int end = zeroCrossings[k + 1];
+
+                for (int i = start + 1; i < end; i++)
+                {
+                    int state = Math.Clamp(S[i], -4, 4);
+                    if (state != 0) v[state + 4, k]++;
+                }
+            }
+
+            // Шаг 4: Вычисляем χ² статистику
+            double[] pi = { 0.5, 0.25, 0.125, 0.0625, 0.03125, 0.015625, 0.0078125, 0.00390625 };
+            double chiSquare = 0;
+
+            for (int state = 0; state < 8; state++)
+            {
+                for (int k = 0; k < zeroCrossings.Count; k++)
+                {
+                    double expected = pi[state] * zeroCrossings.Count;
+                    chiSquare += Math.Pow(v[state, k] - expected, 2) / expected;
+                }
+            }
+
+            // Шаг 5: Преобразуем в p-value
+            return ChiSquaredCDF(chiSquare, 7); // 7 степеней свободы
+        }
+        #endregion
+
+        #region Random Excursions Variant Test
+        // Тест вариантов случайных экскурсий
+        public double RandomExcursionsVariantTest(string bits)
+        {
+            int n = bits.Length;
+            if (n < 1000) return -1;
+
+            int[] x = new int[n];
+            for (int i = 0; i < n; i++)
+                x[i] = bits[i] == '1' ? 1 : -1;
+
+            List<int> cumulativeSum = new();
+            int s = 0;
+            for (int i = 0; i < x.Length; i++)
+            {
+                s += x[i];
+                cumulativeSum.Add(s);
+            }
+
+            Dictionary<int, int> stateVisits = new();
+            for (int i = 0; i < cumulativeSum.Count; i++)
+            {
+                int val = cumulativeSum[i];
+                if (val == 0) continue;
+                if (Math.Abs(val) > 9) continue;
+
+                if (!stateVisits.ContainsKey(val)) stateVisits[val] = 0;
+                stateVisits[val]++;
+            }
+
+            double sqrt2n = Math.Sqrt(2.0 * n);
+            List<double> pValues = new();
+
+            for (int xState = -9; xState <= 9; xState++)
+            {
+                if (xState == 0) continue;
+
+                int count = stateVisits.ContainsKey(xState) ? stateVisits[xState] : 0;
+                double expected = 2.0 * (NormalCDF((xState + 0.5) / sqrt2n) - NormalCDF((xState - 0.5) / sqrt2n));
+                double p = Math.Exp(-2.0 * n * Math.Pow(expected - ((double)count / n), 2));
+                pValues.Add(p);
+            }
+
+            return pValues.Count > 0 ? pValues.Min() : -1;
+        }
+        #endregion
+
+        #region Auxiliary calculation
+        // χ² CDF аппроксимация с помощью серии
+        private double ChiSquaredCDF(double x, int k)
+        {
+            if (x < 0 || k <= 0) return 0.0;
+
+            double a = k / 2.0;
+            double gamma = GammaLowerIncomplete(a, x / 2.0);
+            double fullGamma = GammaFunction(a);
+            return gamma / fullGamma;
         }
 
-        // Тест вариантов случайных экскурсий
-        public Dictionary<int, int> RandomExcursionsVariantTest(string bits)
+        // Γ(s, x) — нижняя неполная гамма-функция
+        private double GammaLowerIncomplete(double s, double x)
         {
-            int sum = 0;
-            Dictionary<int, int> visits = new();
-
-            foreach (char bit in bits)
+            double sum = 0.0;
+            double term = 1.0 / s;
+            double n = 0;
+            while (term > 1e-15)
             {
-                sum += bit == '1' ? 1 : -1;
-                if (!visits.ContainsKey(sum)) visits[sum] = 0;
-                visits[sum]++;
+                sum += term;
+                n++;
+                term *= x / (s + n);
             }
 
-            return visits
-                .Where(kv => Math.Abs(kv.Key) <= 5)  // Ограничиваем максимум
-                .ToDictionary(kv => kv.Key, kv => kv.Value);
+            return Math.Pow(x, s) * Math.Exp(-x) * sum;
+        }
+
+        // Γ(s) — гамма-функция через ланцос-аппроксимацию
+        private double GammaFunction(double z)
+        {
+            double[] p = {
+                676.5203681218851, -1259.1392167224028,
+                771.32342877765313, -176.61502916214059,
+                12.507343278686905, -0.13857109526572012,
+                9.9843695780195716e-6, 1.5056327351493116e-7
+            };
+
+            int g = 7;
+            if (z < 0.5)
+            {
+                return Math.PI / (Math.Sin(Math.PI * z) * GammaFunction(1 - z));
+            }
+
+            z -= 1;
+            double x = 0.99999999999980993;
+            for (int i = 0; i < p.Length; i++)
+                x += p[i] / (z + i + 1);
+
+            double t = z + g + 0.5;
+            return Math.Sqrt(2 * Math.PI) * Math.Pow(t, z + 0.5) * Math.Exp(-t) * x;
+        }
+
+        // 1 - erf(x), быстрая аппроксимация
+        private double ErfComplement(double x)
+        {
+            double z = Math.Abs(x);
+            double t = 1.0 / (1.0 + 0.5 * z);
+            double ans = t * Math.Exp(-z * z - 1.26551223 +
+                t * (1.00002368 +
+                t * (0.37409196 +
+                t * (0.09678418 +
+                t * (-0.18628806 +
+                t * (0.27886807 +
+                t * (-1.13520398 +
+                t * (1.48851587 +
+                t * (-0.82215223 +
+                t * 0.17087277)))))))));
+            return x >= 0.0 ? ans : 2.0 - ans;
+        }
+
+        private double NormalCDF(double x)
+        {
+            if (double.IsNaN(x))
+                return 0.0;
+
+            if (double.IsPositiveInfinity(x))
+                return 1.0;
+
+            if (double.IsNegativeInfinity(x))
+                return 0.0;
+
+            // Используем свойство симметрии для отрицательных x
+            if (x < 0)
+                return 1.0 - NormalCDF(-x);
+
+            // Для больших x возвращаем 1.0 (избегаем численных погрешностей)
+            if (x > 8.0)
+                return 1.0;
+
+            return 1.0 - 0.5 * ErfComplement(x / Math.Sqrt(2));
         }
 
         private int ComputeRank(int[,] matrix)
         {
+            int rows = matrix.GetLength(0);
+            int cols = matrix.GetLength(1);
             int rank = 0;
-            int size = matrix.GetLength(0);
 
-            for (int i = 0; i < size; i++)
+            for (int row = 0, col = 0; row < rows && col < cols; col++)
             {
-                if (matrix[i, i] == 0)
+                // Найти первую строку с ненулевым элементом в текущем столбце
+                int pivotRow = -1;
+                for (int i = row; i < rows; i++)
                 {
-                    for (int j = i + 1; j < size; j++)
+                    if (matrix[i, col] == 1)
                     {
-                        if (matrix[j, i] == 1)
+                        pivotRow = i;
+                        break;
+                    }
+                }
+
+                // Если опорного элемента нет — переход к следующему столбцу
+                if (pivotRow == -1)
+                    continue;
+
+                // Обмен строк (если необходимо)
+                if (pivotRow != row)
+                {
+                    for (int j = 0; j < cols; j++)
+                    {
+                        int temp = matrix[row, j];
+                        matrix[row, j] = matrix[pivotRow, j];
+                        matrix[pivotRow, j] = temp;
+                    }
+                }
+
+                // Обнуление всех 1-х ниже текущей строки в текущем столбце
+                for (int i = 0; i < rows; i++)
+                {
+                    if (i != row && matrix[i, col] == 1)
+                    {
+                        for (int j = 0; j < cols; j++)
                         {
-                            for (int k = 0; k < size; k++)
-                            {
-                                matrix[i, k] ^= matrix[j, k];
-                            }
-                            break;
+                            matrix[i, j] ^= matrix[row, j]; // XOR строк
                         }
                     }
                 }
-                if (matrix[i, i] == 1)
-                {
-                    rank++;
-                    for (int j = i + 1; j < size; j++)
-                    {
-                        if (matrix[j, i] == 1)
-                        {
-                            for (int k = 0; k < size; k++)
-                            {
-                                matrix[j, k] ^= matrix[i, k];
-                            }
-                        }
-                    }
-                }
+
+                rank++;
+                row++;
             }
 
             return rank;
-        }
-
-        private void SwapRows(int[][] matrix, int row1, int row2)
-        {
-            int[] temp = matrix[row1];
-            matrix[row1] = matrix[row2];
-            matrix[row2] = temp;
         }
 
         // Преобразование hex в binary
@@ -426,5 +745,76 @@ namespace The_complex_of_testing_hash_functions.Services
         {
             return string.Join("", hex.Select(c => Convert.ToString(Convert.ToInt32(c.ToString(), 16), 2).PadLeft(4, '0')));
         }
+
+        // Факториал числа
+        private double Factorial(int n)
+        {
+            if (n < 0) return 0;
+            if (n == 0) return 1;
+
+            double result = 1;
+            for (int i = 1; i <= n; i++)
+            {
+                result *= i;
+            }
+            return result;
+        }
+
+        // Берлекамп Мэсси
+        private int BerlekampMassey(string bits)
+        {
+            int n = bits.Length;
+            int[] C = new int[n];
+            int[] B = new int[n];
+            C[0] = B[0] = 1;
+
+            int L = 0, m = -1, d;
+
+            for (int N = 0; N < n; N++)
+            {
+                d = bits[N] - '0';
+                for (int i = 1; i <= L; i++)
+                    d ^= C[i] * (bits[N - i] - '0');
+
+                if (d == 1)
+                {
+                    int[] T = (int[])C.Clone();
+                    for (int i = 0; i < n - N + m; i++)
+                        C[N - m + i] ^= B[i];
+                    if (2 * L <= N)
+                    {
+                        L = N + 1 - L;
+                        m = N;
+                        B = T;
+                    }
+                }
+            }
+
+            return L;
+        }
+
+        private double Phi(string bits, int m)
+        {
+            int n = bits.Length;
+            Dictionary<string, int> freq = new();
+            string extended = bits + bits.Substring(0, m - 1); // циркулярность
+
+            for (int i = 0; i < n; i++)
+            {
+                string pattern = extended.Substring(i, m);
+                if (!freq.ContainsKey(pattern)) freq[pattern] = 0;
+                freq[pattern]++;
+            }
+
+            double sum = 0;
+            foreach (int count in freq.Values)
+            {
+                double p = (double)count / n;
+                sum += p * Math.Log(p);
+            }
+
+            return sum;
+        }
+        #endregion
     }
 }

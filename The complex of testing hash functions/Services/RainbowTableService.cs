@@ -1,9 +1,7 @@
-﻿using System.Runtime.Intrinsics.Arm;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 using The_complex_of_testing_hash_functions.Models;
 using SHA3.Net;
-using GostCryptography;
 using Org.BouncyCastle.Crypto.Digests;
 
 
@@ -71,8 +69,9 @@ namespace The_complex_of_testing_hash_functions.Services
             return rainbowTable;
         }
 
-        private void AddEntry(string plainText, string algorithm, int chainLength, int tableId, List<RainbowEntry> entries, HashSet<string> usedHashes, bool forceAdd = false)
+        private void AddEntry(string plainTextStart, string algorithm, int chainLength, int tableId, List<RainbowEntry> entries, HashSet<string> usedHashes, bool forceAdd = false)
         {
+            string plainText = plainTextStart;
             string hash = ComputeHash(plainText, algorithm);
 
             for (int j = 0; j < chainLength; j++)
@@ -81,12 +80,11 @@ namespace The_complex_of_testing_hash_functions.Services
                 hash = ComputeHash(plainText, algorithm);
             }
 
-            // Если forceAdd == true, добавляем даже при дубликате
             if (forceAdd || !usedHashes.Contains(hash))
             {
                 entries.Add(new RainbowEntry
                 {
-                    PlainText = plainText,
+                    PlainText = plainTextStart,
                     HashValue = hash,
                     RainbowTableId = tableId
                 });
@@ -137,29 +135,56 @@ namespace The_complex_of_testing_hash_functions.Services
             return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
         }
 
-
         // Метод редукции хэша в текст
         private string ReduceHash(string hash, int step)
         {
-            int minLength = 6;
+            const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            int minLength = 4;
             int maxLength = 16;
-            int length = (step % (maxLength - minLength + 1)) + minLength; // от 6 до 16 символов
 
-            int startIndex = (step * 13) % Math.Max(1, hash.Length - length);
-            string reduced = hash.Substring(startIndex, length);
+            // Вычисляем длину строки на текущем шаге
+            int length = (step % (maxLength - minLength + 1)) + minLength;
 
-            // Вставляем символ из хэша и добавляем два случайных символа
-            return $"{reduced}{hash[(startIndex + step) % hash.Length]}{step % 100}";
+            // Смешиваем хэш и шаг для получения устойчивого значения
+            StringBuilder result = new StringBuilder();
+
+            for (int i = 0; i < length; i++)
+            {
+                // Индекс в пределах длины хэша
+                int index = (step * 31 + i * 17) % hash.Length;
+
+                // Преобразуем символ из хэша в индекс символа из алфавита
+                char c = hash[index];
+                int charIndex = (int)c % chars.Length;
+                result.Append(chars[charIndex]);
+            }
+
+            return result.ToString();
         }
 
-        private string GenerateRandomString(int length = 6)
+        private string GenerateRandomString()
         {
             const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            int minLength = 4;
+            int maxLength = 16;
+
+            int length = RandomNumberBetween(minLength, maxLength);
+
             using var rng = RandomNumberGenerator.Create();
             byte[] data = new byte[length];
 
             rng.GetBytes(data);
             return new string(data.Select(b => chars[b % chars.Length]).ToArray());
+        }
+
+        // Вспомогательный метод получения случайного числа
+        private int RandomNumberBetween(int min, int max)
+        {
+            using var rng = RandomNumberGenerator.Create();
+            byte[] uint32Buffer = new byte[4];
+            rng.GetBytes(uint32Buffer);
+            uint randomValue = BitConverter.ToUInt32(uint32Buffer, 0);
+            return (int)(min + (randomValue % (max - min + 1)));
         }
 
         // Метод сохранения результатов теста
@@ -189,7 +214,10 @@ namespace The_complex_of_testing_hash_functions.Services
             var hashFunction = _context.HashFunctions.FirstOrDefault(h => h.Id == hashFunctionId);
             if (hashFunction == null) return null;
 
-            var rainbowTables = _context.RainbowTables.Where(rt => rt.HashFunctionId == hashFunctionId).ToList();
+            var rainbowTables = _context.RainbowTables
+                .Where(rt => rt.HashFunctionId == hashFunctionId)
+                .ToList();
+
             if (!rainbowTables.Any()) return null;
 
             string algorithm = hashFunction.AlgorithmType;
@@ -206,14 +234,31 @@ namespace The_complex_of_testing_hash_functions.Services
                 {
                     attempts++;
 
-                    if (entry.HashValue == inputHash)
+                    // Попробуем восстановить всю цепочку из этого entry
+                    string current = entry.PlainText;
+                    string hash = ComputeHash(current, algorithm);
+
+                    if (hash == inputHash)
                     {
                         SaveTestResult(hashFunctionId, "Поиск пароля", attempts);
-                        return new SearchResult
+                        return new SearchResult { PlainText = current, ChainLength = 0 };
+                    }
+
+                    for (int i = 0; i < rainbowTable.ChainLength; i++)
+                    {
+                        string reduced = ReduceHash(hash, i);
+                        current = reduced;
+                        hash = ComputeHash(current, algorithm);
+
+                        if (hash == inputHash)
                         {
-                            PlainText = entry.PlainText,
-                            ChainLength = 0
-                        };
+                            SaveTestResult(hashFunctionId, "Поиск пароля", attempts);
+                            return new SearchResult
+                            {
+                                PlainText = entry.PlainText, // начальный элемент
+                                ChainLength = i + 1
+                            };
+                        }
                     }
                 }
             }
@@ -221,6 +266,7 @@ namespace The_complex_of_testing_hash_functions.Services
             SaveTestResult(hashFunctionId, "Поиск пароля", attempts);
             return null;
         }
+
 
         private byte[] ComputeGostHash(byte[] inputBytes, int bits)
         {

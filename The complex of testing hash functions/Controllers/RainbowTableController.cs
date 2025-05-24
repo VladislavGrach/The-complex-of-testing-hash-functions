@@ -108,19 +108,5 @@ namespace The_complex_of_testing_hash_functions.Controllers
 
             return RedirectToAction(nameof(Index));
         }
-
-        public IActionResult Details(int id)
-        {
-            var table = _context.RainbowTables
-                .Include(r => r.HashFunction)
-                .FirstOrDefault(m => m.Id == id);
-
-            if (table == null)
-            {
-                return NotFound();
-            }
-
-            return View(table);
-        }
     }
 }
