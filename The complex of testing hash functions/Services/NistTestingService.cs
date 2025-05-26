@@ -145,7 +145,7 @@ namespace The_complex_of_testing_hash_functions.Services
             int matrixSize = M * Q;
             long N = bits.Length / matrixSize;
 
-            if (N == 0) return 0.0; // вместо NaN — безопасное значение
+            if (N == 0) return -1;
 
             int fullRank = 0, rankMinusOne = 0, below = 0;
 
@@ -187,7 +187,6 @@ namespace The_complex_of_testing_hash_functions.Services
 
             return Math.Round(pValue, 8);
         }
-
         #endregion
 
         #region Discrete Fourier Transform Test
@@ -195,7 +194,7 @@ namespace The_complex_of_testing_hash_functions.Services
         public double DiscreteFourierTransformTest(string bits)
         {
             int n = bits.Length;
-            if (n < 100) return double.NaN; // слишком короткая последовательность
+            if (n < 100) return -1; // слишком короткая последовательность
 
             // Преобразование {0,1} → {-1,+1}
             double[] sequence = bits.Select(b => b == '1' ? 1.0 : -1.0).ToArray();
@@ -596,7 +595,7 @@ namespace The_complex_of_testing_hash_functions.Services
 
         #region Auxiliary calculation
         // χ² CDF аппроксимация с помощью серии
-        private double ChiSquaredCDF(double x, int k)
+        public double ChiSquaredCDF(double x, int k)
         {
             if (x < 0 || k <= 0) return 0.0;
 
@@ -607,7 +606,7 @@ namespace The_complex_of_testing_hash_functions.Services
         }
 
         // Γ(s, x) — нижняя неполная гамма-функция
-        private double GammaLowerIncomplete(double s, double x)
+        public double GammaLowerIncomplete(double s, double x)
         {
             double sum = 0.0;
             double term = 1.0 / s;
@@ -623,7 +622,7 @@ namespace The_complex_of_testing_hash_functions.Services
         }
 
         // Γ(s) — гамма-функция через ланцос-аппроксимацию
-        private double GammaFunction(double z)
+        public double GammaFunction(double z)
         {
             double[] p = {
                 676.5203681218851, -1259.1392167224028,
@@ -648,7 +647,7 @@ namespace The_complex_of_testing_hash_functions.Services
         }
 
         // 1 - erf(x), быстрая аппроксимация
-        private double ErfComplement(double x)
+        public double ErfComplement(double x)
         {
             double z = Math.Abs(x);
             double t = 1.0 / (1.0 + 0.5 * z);
@@ -665,7 +664,7 @@ namespace The_complex_of_testing_hash_functions.Services
             return x >= 0.0 ? ans : 2.0 - ans;
         }
 
-        private double NormalCDF(double x)
+        public double NormalCDF(double x)
         {
             if (double.IsNaN(x))
                 return 0.0;
@@ -687,7 +686,7 @@ namespace The_complex_of_testing_hash_functions.Services
             return 1.0 - 0.5 * ErfComplement(x / Math.Sqrt(2));
         }
 
-        private int ComputeRank(int[,] matrix)
+        public int ComputeRank(int[,] matrix)
         {
             int rows = matrix.GetLength(0);
             int cols = matrix.GetLength(1);
@@ -747,7 +746,7 @@ namespace The_complex_of_testing_hash_functions.Services
         }
 
         // Факториал числа
-        private double Factorial(int n)
+        public double Factorial(int n)
         {
             if (n < 0) return 0;
             if (n == 0) return 1;
@@ -761,7 +760,7 @@ namespace The_complex_of_testing_hash_functions.Services
         }
 
         // Берлекамп Мэсси
-        private int BerlekampMassey(string bits)
+        public int BerlekampMassey(string bits)
         {
             int n = bits.Length;
             int[] C = new int[n];
@@ -793,7 +792,7 @@ namespace The_complex_of_testing_hash_functions.Services
             return L;
         }
 
-        private double Phi(string bits, int m)
+        public double Phi(string bits, int m)
         {
             int n = bits.Length;
             Dictionary<string, int> freq = new();
