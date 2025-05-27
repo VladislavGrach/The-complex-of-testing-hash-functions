@@ -194,12 +194,12 @@ namespace The_complex_of_testing_hash_functions.Services
         public double DiscreteFourierTransformTest(string bits)
         {
             int n = bits.Length;
-            if (n < 100) return -1; // слишком короткая последовательность
+            if (n < 100) return -1;
 
-            // Преобразование {0,1} → {-1,+1}
+            // Преобразуем 0 → -1, 1 → +1
             double[] sequence = bits.Select(b => b == '1' ? 1.0 : -1.0).ToArray();
 
-            // Выполняем дискретное преобразование Фурье
+            // Преобразование Фурье (реализуем быстрое преобразование если надо)
             Complex[] spectrum = new Complex[n];
             for (int k = 0; k < n; k++)
             {
@@ -213,22 +213,25 @@ namespace The_complex_of_testing_hash_functions.Services
                 spectrum[k] = new Complex(real, imag);
             }
 
-            // Рассчитываем амплитуды
+            // Амплитуды
             double[] magnitudes = spectrum.Select(c => c.Magnitude).ToArray();
 
-            // Определяем порог
-            double threshold = Math.Sqrt(Math.Log(1 / 0.05) * n); // ≈ √(n * ln(20))
+            // Порог — 95% порог выброса
+            double threshold = Math.Sqrt(Math.Log(1 / 0.05) * n);
 
-            // Считаем количество пиков выше порога
+            // Считаем пики выше порога в первой половине спектра
             int count = magnitudes.Take(n / 2).Count(m => m > threshold);
             double expected = 0.95 * n / 2;
             double variance = n * 0.95 * 0.05 / 4;
+
+            if (variance == 0) return 0;
+
             double z = (count - expected) / Math.Sqrt(variance);
 
-            // Используем нормальное приближение
-            double pValue = ErfComplement(Math.Abs(z) / Math.Sqrt(2));
-            return pValue;
+            double pValue = 2 * (1 - NormalCDF(Math.Abs(z)));
+            return Math.Round(pValue, 8);
         }
+
         #endregion
 
         #region Non Overlapping Template Matching Test
@@ -352,28 +355,34 @@ namespace The_complex_of_testing_hash_functions.Services
         // Тест Лемпеля-Зива
         public double LempelZivCompressionTest(string bits)
         {
-            if (bits.Length < 128) return -1; // Минимум 128 бит
+            if (bits.Length < 256) return -1; 
 
-            HashSet<string> dictionary = new() { "" };
+            HashSet<string> dictionary = new();
             string current = "";
             int wordCount = 0;
 
             foreach (char bit in bits)
             {
                 current += bit;
-                if (!dictionary.Contains(current)) continue;
-
-                dictionary.Add(current);
-                wordCount++;
-                current = "";
+                if (!dictionary.Contains(current))
+                {
+                    dictionary.Add(current);
+                    wordCount++;
+                    current = "";
+                }
             }
+
             if (!string.IsNullOrEmpty(current)) wordCount++;
 
-            // Эмпирическая оценка для малых данных
-            double expected = bits.Length * 0.072;
-            double z = (wordCount - expected) / Math.Sqrt(expected * 0.1);
+            double n = bits.Length;
+            double expected = n / Math.Log2(n);
+            double variance = 0.7 * n / Math.Pow(Math.Log2(n), 2);
+
+            double z = (wordCount - expected) / Math.Sqrt(variance);
+
             return 2 * (1 - NormalCDF(Math.Abs(z)));
         }
+
         #endregion
 
         #region Linear Complexity Test
@@ -597,7 +606,7 @@ namespace The_complex_of_testing_hash_functions.Services
         // χ² CDF аппроксимация с помощью серии
         public double ChiSquaredCDF(double x, int k)
         {
-            if (x < 0 || k <= 0) return 0.0;
+            if (x < 0 || k <= 0) return -1;
 
             double a = k / 2.0;
             double gamma = GammaLowerIncomplete(a, x / 2.0);
