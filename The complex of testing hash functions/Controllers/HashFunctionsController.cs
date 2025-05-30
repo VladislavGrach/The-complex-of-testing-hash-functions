@@ -11,14 +11,20 @@ namespace The_complex_of_testing_hash_functions.Controllers
         private readonly HashTestingContext _context;
         private readonly NistTestingService _nistService;
         private readonly IDiehardTestingService _diehardService;
+        private readonly ILogger<HashFunctionsController> _logger;
 
-
-        public HashFunctionsController(HashTestingContext context, INistTestingService nistService, IDiehardTestingService diehardService)
+        public HashFunctionsController(
+            HashTestingContext context,
+            INistTestingService nistService,
+            IDiehardTestingService diehardService,
+            ILogger<HashFunctionsController> logger)
         {
             _context = context;
             _nistService = (NistTestingService?)nistService;
             _diehardService = diehardService;
+            _logger = logger;
         }
+
 
         public async Task<IActionResult> Index()
         {
@@ -166,136 +172,136 @@ namespace The_complex_of_testing_hash_functions.Controllers
                 // Применяем тесты
                 if (tests.Contains("Monobit"))
                 {
-                    Console.WriteLine("✅ 1");
+                    _logger.LogInformation("✅ 1 - Монобит-тест запущен");
                     AddTestResult("Монобит-тест", _nistService.MonobitTest(binaryHash));
                 }
 
                 if (tests.Contains("FrequencyWithinBlock"))
                 {
-                    Console.WriteLine("✅ 2");
+                    _logger.LogInformation("✅ 2 - Тест на частоту в блоках запущен");
                     AddTestResult("Тест на частоту в блоках", _nistService.FrequencyTestWithinBlock(binaryHash));
                 }
 
                 if (tests.Contains("Runs"))
                 {
-                    Console.WriteLine("✅ 3");
+                    _logger.LogInformation("✅ 3 - Тест на серийность запущен");
                     AddTestResult("Тест на серийность", _nistService.RunsTest(binaryHash));
                 }
 
                 if (tests.Contains("LongestRunOfOnes"))
                 {
-                    Console.WriteLine("✅ 4");
+                    _logger.LogInformation("✅ 4 - Тест на самую длинную последовательность единиц запущен");
                     AddTestResult("Тест на самую длинную последовательность единиц", _nistService.LongestRunOfOnesTest(binaryHash));
                 }
 
                 if (tests.Contains("BinaryMatrixRank"))
                 {
-                    Console.WriteLine("✅ 5");
+                    _logger.LogInformation("✅ 5 - Тест ранга бинарной матрицы запущен");
                     AddTestResult("Тест ранга бинарной матрицы", _nistService.BinaryMatrixRankTest(binaryHash));
                 }
 
 
                 if (tests.Contains("DiscreteFourierTransformTest"))
                 {
-                    Console.WriteLine("✅ 6");
+                    _logger.LogInformation("✅ 6 - Дискретное преобразование Фурье запущен");
                     AddTestResult("Дискретное преобразование Фурье", _nistService.DiscreteFourierTransformTest(binaryHash));
                 }
 
 
                 if (tests.Contains("NonOverlappingTemplateMatching"))
                 {
-                    Console.WriteLine("✅ 7");
+                    _logger.LogInformation("✅ 7 - Тест на несовпадающие шаблоны запущен");
                     AddTestResult("Тест на несовпадающие шаблоны", _nistService.NonOverlappingTemplateMatchingTest(binaryHash));
                 }
 
 
                 if (tests.Contains("OverlappingTemplateMatching"))
                 {
-                    Console.WriteLine("✅ 8");
+                    _logger.LogInformation("✅ 8 - Тест на совпадающие шаблоны запущен");
                     AddTestResult("Тест на совпадающие шаблоны", _nistService.OverlappingTemplateMatchingTest(binaryHash));
                 }
 
 
                 if (tests.Contains("MaurersUniversal"))
                 {
-                    Console.WriteLine("✅ 9");
+                    _logger.LogInformation("✅ 9 - Универсальный тест Маурера запущен");
                     AddTestResult("Универсальный тест Маурера", _nistService.MaurersUniversalTest(binaryHash));
                 }
 
 
                 if (tests.Contains("LinearComplexity"))
                 {
-                    Console.WriteLine("✅ 10");
+                    _logger.LogInformation("✅ 10 - Тест линейной сложности запущен");
                     AddTestResult("Тест линейной сложности", _nistService.LinearComplexityTest(binaryHash));
                 }
 
 
                 if (tests.Contains("Serial"))
                 {
-                    Console.WriteLine("✅ 11");
+                    _logger.LogInformation("✅ 11 - Серийный тест запущен");
                     AddTestResult("Серийный тест", _nistService.SerialTest(binaryHash));
                 }
 
 
                 if (tests.Contains("ApproximateEntropy"))
                 {
-                    Console.WriteLine("✅ 12");
+                    _logger.LogInformation("✅ 12 - Тест приближенной энтропии запущен");
                     AddTestResult("Тест приближенной энтропии", _nistService.ApproximateEntropyTest(binaryHash));
                 }
 
 
                 if (tests.Contains("CusumTest"))
                 {
-                    Console.WriteLine("✅ 13");
+                    _logger.LogInformation("✅ 13 - Тест накопленной суммы запущен");
                     AddTestResult("Тест накопленной суммы", _nistService.CusumTest(binaryHash));
                 }
 
 
                 if (tests.Contains("RandomExcursions"))
                 {
-                    Console.WriteLine("✅ 14");
+                    _logger.LogInformation("✅ 14 - Тест случайных экскурсий запущен");
                     AddTestResult("Тест случайных экскурсий", _nistService.RandomExcursionsTest(binaryHash));
                 }
 
                 if (tests.Contains("RandomExcursionsVariant"))
                 {
-                    Console.WriteLine("✅ 15");
+                    _logger.LogInformation("✅ 15 - Тест вариантов случайных экскурсий запущен");
                     AddTestResult("Тест вариантов случайных экскурсий", _nistService.RandomExcursionsVariantTest(binaryHash));
                 }
 
                 if (tests.Contains("LempelZivCompression"))
                 {
-                    Console.WriteLine("✅ 16");
+                    _logger.LogInformation("✅ 16 - Тест Лемпеля-Зива запущен");
                     AddTestResult("Тест Лемпеля-Зива", _nistService.LempelZivCompressionTest(binaryHash));
                 }
 
                 if (tests.Contains("BirthdaySpacings"))
                 {
-                    Console.WriteLine("✅ 17");
+                    _logger.LogInformation("✅ 17 - Тест дней рождения запущен");
                     AddTestResult("Тест дней рождения", _diehardService.BirthdaySpacingsTest(binaryHash));
                 }
 
                 if (tests.Contains("CountOnes"))
                 {
-                    Console.WriteLine("✅ 18");
+                    _logger.LogInformation("✅ 18 - Тест подсчёта единиц запущен");
                     AddTestResult("Тест подсчёта единиц", _diehardService.CountOnesTest(binaryHash));
                 }
 
                 if (tests.Contains("RanksOfMatrices"))
                 {
-                    Console.WriteLine("✅ 19");
+                    _logger.LogInformation("✅ 19 - Тест рангов матриц запущен");
                     AddTestResult("Тест рангов матриц", _diehardService.RanksOfMatricesTest(binaryHash));
                 }
 
                 if (tests.Contains("OverlappingPermutations"))
                 {
-                    Console.WriteLine("✅ 20");
+                    _logger.LogInformation("✅ 20 - Тест на перестановки запущен");
                     AddTestResult("Тест на перестановки", _diehardService.OverlappingPermutationsTest(binaryHash));
                 }
 
                 if (tests.Contains("RunsDiehard"))
                 {
-                    Console.WriteLine("✅ 21");
+                    _logger.LogInformation("✅ 21 - Тест серийности запущен");
                     AddTestResult("Тест серийности", _diehardService.RunsTest(binaryHash));
                 }
             }
